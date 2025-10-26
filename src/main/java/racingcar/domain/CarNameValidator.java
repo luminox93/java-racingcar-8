@@ -13,7 +13,8 @@ public class CarNameValidator {
 	private final Pattern validNamePattern;
 
 	public CarNameValidator() {
-		this(1, 5);
+		this(CarNameConstants.MIN_NAME_LENGTH,
+				CarNameConstants.MAX_NAME_LENGTH);
 	}
 
 	public CarNameValidator(int minNameLength, int maxNameLength) {

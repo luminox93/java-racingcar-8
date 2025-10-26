@@ -314,11 +314,13 @@ racingcar/
 │   ├── RacingGame.java        (경주 게임 전체 관리)
 │   ├── Cars.java              (자동차 일급 컬렉션)
 │   ├── CarNameValidator.java (자동차 이름 검증)
+│   ├── CarNameConstants.java (자동차 이름 상수)
 │   ├── AttemptCountValidator.java (시도 횟수 검증)
 │   ├── MovementGenerator.java (전진 여부 결정)
 │   └── exception/             (예외 클래스)
 │       ├── InvalidCarNameException.java (자동차 이름 예외)
-│       └── InvalidAttemptCountException.java (시도 횟수 예외)
+│       ├── InvalidAttemptCountException.java (시도 횟수 예외)
+│       └── ErrorType.java     (예외 타입 분류)
 └── view/                      (입출력)
     ├── InputView.java         (사용자 입력 처리)
     ├── OutputView.java        (결과 출력 처리)
@@ -343,6 +345,14 @@ racingcar/
 - 개별 자동차의 상태 관리 (이름, 위치)
 - 전진 로직 수행
 - 불변성 유지 (위치 변경 시 새 객체 반환)
+- 이름 검증 (빈 문자열, 길이 체크)
+- assertion을 통한 내부 상태 검증
+
+**\`domain/CarNameConstants\`**
+- 자동차 이름 관련 상수 관리
+- MIN_NAME_LENGTH (최소 이름 길이: 1)
+- MAX_NAME_LENGTH (최대 이름 길이: 5)
+- 유틸리티 클래스로 인스턴스화 방지
 
 **\`domain/RacingGame\`**
 - 경주 게임 전체 진행 로직
@@ -364,6 +374,7 @@ racingcar/
 - 중복 이름 체크 (대소문자 구분)
 - 생성자 파라미터 검증으로 방어적 프로그래밍 적용
 - `InvalidCarNameException` 예외 발생
+- `CarNameConstants`를 통한 상수 관리
 
 **\`domain/exception/InvalidCarNameException\`**
 - 자동차 이름 검증 실패 시 발생하는 커스텀 예외
@@ -447,10 +458,14 @@ racingcar/
 - [x] 테스트 코드 작성 완료 (CarNameValidatorTest.java)
 
 ### 3️⃣ 자동차 생성 및 관리 (\`Cars\`, \`Car\`)
-- [ ] 쉼표(\`,\`)를 기준으로 자동차 이름 분리
-- [ ] 각 이름으로 \`Car\` 객체 생성
+- [x] 쉼표(\`,\`)를 기준으로 자동차 이름 분리
+- [x] 각 이름으로 \`Car\` 객체 생성
+- [x] 자동차 초기 위치는 0
+- [x] 불변 객체로 설계 (final 필드)
+- [x] 전진 시 새로운 Car 객체 반환
+- [x] 생성자에서 이름 검증 수행
+- [x] private 생성자로 내부 상태 보장
 - [ ] 자동차 목록을 일급 컬렉션으로 관리
-- [ ] 자동차 초기 위치는 0
 
 ### 4️⃣ 시도 횟수 검증 (\`AttemptCountValidator\`)
 - [x] 빈 입력 검증 (아무것도 입력하지 않은 경우)
