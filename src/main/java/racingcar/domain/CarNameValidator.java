@@ -7,8 +7,6 @@ import java.util.regex.Pattern;
 import racingcar.domain.exception.InvalidCarNameException;
 import racingcar.domain.exception.InvalidCarNameException.ErrorType;
 
-import static racingcar.domain.AssertMessage.*;
-
 public class CarNameValidator {
 	private final int maxNameLength;
 	private final int minNameLength;
@@ -34,7 +32,7 @@ public class CarNameValidator {
 	}
 
 	private void validateList(List<String> names) {
-		assert names != null : NAMES_NULL_IN_VALIDATE_LIST.getMessage();
+		assert names != null : "names는 null일 수 없습니다";
 
 		validateListNotEmpty(names);
 		validateNoBlankName(names);
@@ -42,7 +40,7 @@ public class CarNameValidator {
 	}
 
 	private void validateEachName(List<String> names) {
-		assert names != null : NAMES_NULL_IN_VALIDATE_EACH_NAME.getMessage();
+		assert names != null : "names는 null일 수 없습니다";
 
 		names.forEach(name -> {
 			validateLength(name);
@@ -52,7 +50,7 @@ public class CarNameValidator {
 	}
 
 	private void validateListNotEmpty(List<String> names) {
-		assert names != null : NAMES_NULL_IN_VALIDATE_LIST_NOT_EMPTY.getMessage();
+		assert names != null : "names는 null일 수 없습니다";
 
 		if (names.isEmpty()) {
 			throw new InvalidCarNameException(ErrorType.EMPTY);
@@ -60,7 +58,7 @@ public class CarNameValidator {
 	}
 
 	private void validateNoBlankName(List<String> names) {
-		assert names != null : NAMES_NULL_IN_VALIDATE_NO_BLANK_NAME.getMessage();
+		assert names != null : "names는 null일 수 없습니다";
 
 		if (names.stream().anyMatch(name -> name == null || name.trim().isEmpty())) {
 			throw new InvalidCarNameException(ErrorType.EMPTY);
@@ -68,7 +66,7 @@ public class CarNameValidator {
 	}
 
 	private void validateNoDuplicateName(List<String> names) {
-		assert names != null : NAMES_NULL_IN_VALIDATE_NO_DUPLICATE_NAME.getMessage();
+		assert names != null : "names는 null일 수 없습니다";
 
 		if (names.size() != new HashSet<>(names).size()) {
 			throw new InvalidCarNameException(ErrorType.DUPLICATE);
@@ -76,7 +74,7 @@ public class CarNameValidator {
 	}
 
 	private void validateLength(String name) {
-		assert name != null : NAME_NULL_IN_VALIDATE_LENGTH.getMessage();
+		assert name != null : "name은 null일 수 없습니다";
 
 		if (name.length() < minNameLength || name.length() > maxNameLength) {
 			throw new InvalidCarNameException(ErrorType.INVALID_LENGTH);
@@ -84,7 +82,7 @@ public class CarNameValidator {
 	}
 
 	private void validateNoWhitespace(String name) {
-		assert name != null : NAME_NULL_IN_VALIDATE_NO_WHITESPACE.getMessage();
+		assert name != null : "name은 null일 수 없습니다";
 
 		if (name.contains(" ") || name.contains("\t")) {
 			throw new InvalidCarNameException(ErrorType.WHITESPACE);
@@ -92,7 +90,7 @@ public class CarNameValidator {
 	}
 
 	private void validateNoSpecialCharacters(String name) {
-		assert name != null : NAME_NULL_IN_VALIDATE_NO_SPECIAL_CHARACTERS.getMessage();
+		assert name != null : "name은 null일 수 없습니다";
 
 		if (!validNamePattern.matcher(name).matches()) {
 			throw new InvalidCarNameException(ErrorType.SPECIAL_CHAR);
