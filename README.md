@@ -283,7 +283,7 @@ flowchart TD
 ## 🏗️ 프로젝트 구조 설계
 
 ### 📦 패키지 구조
-\`\`\`
+```
 racingcar/
 ├── Application.java           (메인 실행)
 ├── controller/                (흐름 제어)
@@ -299,7 +299,7 @@ racingcar/
 └── view/                      (입출력)
     ├── InputView.java         (사용자 입력 처리)
     └── OutputView.java        (결과 출력 처리)
-\`\`\`
+```
 
 ### 🎯 클래스 역할 및 책임
 
@@ -513,7 +513,7 @@ racingcar/
 ## 💻 실행 결과 예시
 
 ### ✅ 정상 실행 (단독 우승)
-\`\`\`
+```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni,jun
 시도할 횟수는 몇 회인가요?
@@ -541,10 +541,10 @@ woni : ----
 jun : -----
 
 최종 우승자 : pobi
-\`\`\`
+```
 
 ### ✅ 정상 실행 (공동 우승)
-\`\`\`
+```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni,jun
 시도할 횟수는 몇 회인가요?
@@ -572,23 +572,23 @@ woni : ----
 jun : -----
 
 최종 우승자 : pobi, jun
-\`\`\`
+```
 
 ### ❌ 예외 발생 (이름 길이 초과)
-\`\`\`
+```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,javaji,jun
 Exception in thread "main" java.lang.IllegalArgumentException: 자동차 이름은 5자 이하여야 합니다.
-\`\`\`
+```
 
 ### ❌ 예외 발생 (잘못된 시도 횟수)
-\`\`\`
+```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni,jun
 시도할 횟수는 몇 회인가요?
 0
 Exception in thread "main" java.lang.IllegalArgumentException: 시도 횟수는 1 이상이어야 합니다.
-\`\`\`
+```
 
 <br>
 
