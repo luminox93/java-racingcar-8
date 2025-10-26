@@ -19,9 +19,11 @@
 - `Domain`: 핵심 비즈니스 로직 (`Car`, `Cars`, `RacingGame`, `Validator`)
 
 **2. 단일 책임 원칙 (SRP)**
-- `CarNameValidator`: 자동차 이름 검증만 담당
+- `CarNameValidator`: 자동차 이름 검증만 담당 (검증 로직 분리)
 - `AttemptCountValidator`: 시도 횟수 검증만 담당
 - `MovementGenerator`: 전진 여부 결정만 담당
+- `InputView`: 사용자 입력만 담당 (검증은 Validator에 위임)
+- `OutputView`: 출력 형식만 담당
 - 각 클래스는 **하나의 변경 이유**만 가짐
 
 **3. 일급 컬렉션 활용**
@@ -38,6 +40,14 @@
 - `MovementGenerator`를 인터페이스로 분리하여 랜덤값 테스트 가능
 - 각 계층을 독립적으로 테스트 가능
 - 검증 로직을 Validator로 분리하여 단위 테스트 용이
+- `CarNameValidator`는 JUnit 5와 AssertJ로 테스트 완료
+
+**6. 커스텀 예외와 타입 안전성**
+- `InvalidCarNameException`은 `IllegalArgumentException`을 상속 (요구사항 충족)
+- `ErrorType` enum으로 예외 유형을 타입 안전하게 분류 (EMPTY, DUPLICATE, INVALID_LENGTH, WHITESPACE, SPECIAL_CHAR)
+- `ErrorMessage`에서 예외 타입에 따라 사용자 친화적 메시지 제공
+- 예외 발생 지점과 메시지 표시 로직 분리
+- 커스텀 예외 사용으로 도메인 의도를 명확히 표현
 
 ### ⚙️ 실행 흐름
 ```
@@ -46,7 +56,8 @@
    └─ 시도 횟수 입력
 
 2. 입력 검증
-   ├─ CarNameValidator: 이름 검증 (길이, 공백, 특수문자, 중복)
+   ├─ CarNameValidator: 이름 검증 (null, 빈 리스트, 길이, 빈 문자열, 공백, 특수문자, 중복)
+   │  └─ 검증 실패 시 InvalidCarNameException 발생 (ErrorType으로 분류)
    └─ AttemptCountValidator: 횟수 검증 (빈 입력, 숫자 형식, 범위)
 
 3. 게임 초기화
@@ -80,17 +91,27 @@
 
 > **예외 처리**
 >
-> **자동차 이름 입력 검증**
-> - **빈 입력**: 아무것도 입력하지 않은 경우 `IllegalArgumentException` 발생
-> - **이름 길이 초과**: 이름이 5자를 초과하는 경우 `IllegalArgumentException` 발생
-> - **빈 문자열**: 빈 문자열이 포함된 경우 (예: `"pobi,,jun"`) `IllegalArgumentException` 발생
-> - **공백 포함**: 이름에 공백(띄어쓰기, 탭 등)이 포함된 경우 (예: `"po bi"`) `IllegalArgumentException` 발생
-> - **특수문자 포함**: 한글, 영문, 숫자를 제외한 특수문자가 포함된 경우 `IllegalArgumentException` 발생
-> - **중복 이름**: 중복된 자동차 이름이 있는 경우 (대소문자 구분) `IllegalArgumentException` 발생
+> **자동차 이름 입력 검증** (`InvalidCarNameException` 발생)
+> - **null 입력**: `null` 입력 시 `ErrorType.EMPTY`
+>   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
+> - **빈 리스트**: 빈 리스트인 경우 `ErrorType.EMPTY`
+>   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
+> - **빈 문자열**: 빈 문자열이 포함된 경우 (예: `"pobi,,jun"`) `ErrorType.EMPTY`
+>   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
+> - **이름 길이**: 이름이 1자 미만 또는 5자를 초과하는 경우 `ErrorType.INVALID_LENGTH`
+>   - 메시지: `[ERROR] 자동차 이름은 1자 이상 5자 이하여야 합니다.`
+> - **공백 포함**: 이름에 공백(띄어쓰기, 탭)이 포함된 경우 (예: `"po bi"`) `ErrorType.WHITESPACE`
+>   - 메시지: `[ERROR] 자동차 이름에 공백을 포함할 수 없습니다.`
+> - **특수문자 포함**: 한글, 영문, 숫자를 제외한 특수문자가 포함된 경우 `ErrorType.SPECIAL_CHAR`
+>   - 메시지: `[ERROR] 자동차 이름은 한글, 영문, 숫자만 사용 가능합니다.`
+> - **중복 이름**: 중복된 자동차 이름이 있는 경우 (대소문자 구분) `ErrorType.DUPLICATE`
+>   - 메시지: `[ERROR] 중복된 자동차 이름이 있습니다.`
 >
-> **시도 횟수 입력 검증**
-> - **빈 입력**: 아무것도 입력하지 않은 경우 `IllegalArgumentException` 발생
-> - **숫자가 아닌 값**: 시도 횟수에 숫자가 아닌 값이 입력된 경우 `IllegalArgumentException` 발생
+> **시도 횟수 입력 검증** (`IllegalArgumentException` 발생)
+> - **빈 입력**: 아무것도 입력하지 않은 경우
+>   - 메시지: `[ERROR] 시도 횟수를 입력해주세요.`
+> - **숫자가 아닌 값**: 시도 횟수에 숫자가 아닌 값이 입력된 경우
+>   - 메시지: `[ERROR] 시도 횟수는 숫자여야 합니다.`
 > - **0 이하의 값**: 0 이하의 값이 입력된 경우 `IllegalArgumentException` 발생
 > - **상한값 초과**: 20을 초과하는 값이 입력된 경우 `IllegalArgumentException` 발생
 >
@@ -293,12 +314,18 @@ racingcar/
 │   ├── RacingGame.java        (경주 게임 전체 관리)
 │   ├── Cars.java              (자동차 일급 컬렉션)
 │   ├── CarNameValidator.java (자동차 이름 검증)
+│   ├── AssertMessage.java     (assertion 메시지 상수)
 │   ├── AttemptCountValidator.java (시도 횟수 검증)
 │   ├── MovementGenerator.java (전진 여부 결정)
-│   └── ErrorMessages.java     (에러 메시지 상수)
+│   └── exception/             (예외 클래스)
+│       └── InvalidCarNameException.java (자동차 이름 예외)
 └── view/                      (입출력)
     ├── InputView.java         (사용자 입력 처리)
-    └── OutputView.java        (결과 출력 처리)
+    ├── OutputView.java        (결과 출력 처리)
+    └── messages/              (메시지 상수)
+        ├── InputMessage.java  (입력 메시지)
+        ├── OutputMessage.java (출력 메시지)
+        └── ErrorMessage.java  (에러 메시지)
 ```
 
 ### 🎯 클래스 역할 및 책임
@@ -330,10 +357,22 @@ racingcar/
 
 **\`domain/CarNameValidator\`**
 - 자동차 이름 유효성 검증
-- 이름 길이 체크 (5자 이하)
-- 빈 문자열, 공백 포함 체크
+- 이름 길이 체크 (1~5자, 커스텀 설정 가능)
+- null 입력, 빈 리스트 체크
+- 빈 문자열, 공백 포함 체크 (공백, 탭)
 - 특수문자 포함 체크 (한글/영문/숫자만 허용)
-- 중복 이름 체크
+- 중복 이름 체크 (대소문자 구분)
+- `InvalidCarNameException` 예외 발생
+
+**\`domain/AssertMessage\`**
+- assertion 메시지 상수 중앙 관리
+- 개발 단계에서의 논리적 오류 탐지
+- 각 검증 메서드별 assertion 메시지 제공
+
+**\`domain/exception/InvalidCarNameException\`**
+- 자동차 이름 검증 실패 시 발생하는 커스텀 예외
+- `ErrorType` enum으로 예외 유형 분류 (EMPTY, DUPLICATE, INVALID_LENGTH, WHITESPACE, SPECIAL_CHAR)
+- `IllegalArgumentException` 상속
 
 **\`domain/AttemptCountValidator\`**
 - 시도 횟수 유효성 검증
@@ -346,19 +385,33 @@ racingcar/
 - \`Randoms.pickNumberInRange(0, 9)\` 활용
 - 4 이상일 때 전진
 
-**\`domain/ErrorMessages\`**
-- 모든 에러 메시지 상수 중앙 관리
-- 중복 제거 및 일관성 유지
-
 **\`view/InputView\`**
-- 자동차 이름 입력 안내 및 받기
-- 시도 횟수 입력 안내 및 받기
+- 자동차 이름 입력 안내 및 받기 (`readCarNames()`)
+- 시도 횟수 입력 안내 및 받기 (`readAttemptCount()`)
 - \`Console.readLine()\`을 통한 입력 처리
+- 입력만 담당, 검증은 Validator에 위임
 
 **\`view/OutputView\`**
-- 각 라운드 실행 결과 출력
-- 최종 우승자 출력
-- 형식에 맞춘 출력 처리
+- 실행 결과 헤더 출력 (`printResultHeader()`)
+- 개별 자동차 위치 출력 (`printCarPosition()`)
+- 라운드 전체 결과 출력 (`printRoundResult()`)
+- 라운드 구분선 출력 (`printRoundSeparator()`)
+- 최종 우승자 출력 (`printWinners()`)
+- 형식: `자동차이름 : ---`, 우승자: `최종 우승자 : pobi, jun`
+
+**\`view/messages/InputMessage\`**
+- 입력 관련 메시지 상수 관리
+- REQUEST_CAR_NAMES, REQUEST_ATTEMPT_COUNT
+
+**\`view/messages/OutputMessage\`**
+- 출력 관련 메시지 상수 관리
+- RESULT_HEADER, WINNERS_PREFIX
+
+**\`view/messages/ErrorMessage\`**
+- 에러 메시지 상수 중앙 관리
+- `InvalidCarNameException`과 매핑하여 사용자 친화적 메시지 제공
+- `[ERROR]` 접두사 자동 추가
+- `from()` 메서드로 예외 타입에 따른 메시지 반환
 
 <br>
 
@@ -373,18 +426,22 @@ racingcar/
 - [x] 시도 횟수 입력 받기 (\`Console.readLine()\` 사용)
 
 ### 2️⃣ 자동차 이름 검증 (\`CarNameValidator\`)
-- [ ] 빈 입력 검증 (아무것도 입력하지 않은 경우)
-- [ ] 빈 입력 시 \`IllegalArgumentException\` 발생
-- [ ] 자동차 이름이 5자 이하인지 검증
-- [ ] 이름이 5자를 초과하면 \`IllegalArgumentException\` 발생
-- [ ] 빈 문자열 이름 검증 (예: "pobi,,jun")
-- [ ] 빈 문자열이 있으면 \`IllegalArgumentException\` 발생
-- [ ] 이름에 공백(띄어쓰기, 탭 등) 포함 검증
-- [ ] 공백이 포함되면 \`IllegalArgumentException\` 발생
-- [ ] 특수문자 포함 검증 (한글/영문/숫자만 허용)
-- [ ] 특수문자가 포함되면 \`IllegalArgumentException\` 발생
-- [ ] 중복된 자동차 이름 검증 (대소문자 구분)
-- [ ] 중복 이름이 있으면 \`IllegalArgumentException\` 발생
+- [x] null 입력 검증
+- [x] null 입력 시 \`InvalidCarNameException\` 발생
+- [x] 빈 리스트 검증 (아무것도 입력하지 않은 경우)
+- [x] 빈 리스트 시 \`InvalidCarNameException\` 발생
+- [x] 자동차 이름이 1~5자 범위인지 검증
+- [x] 이름이 범위를 벗어나면 \`InvalidCarNameException\` 발생
+- [x] 빈 문자열 이름 검증 (예: "pobi,,jun")
+- [x] 빈 문자열이 있으면 \`InvalidCarNameException\` 발생
+- [x] 이름에 공백(띄어쓰기, 탭) 포함 검증
+- [x] 공백이 포함되면 \`InvalidCarNameException\` 발생
+- [x] 특수문자 포함 검증 (한글/영문/숫자만 허용)
+- [x] 특수문자가 포함되면 \`InvalidCarNameException\` 발생
+- [x] 중복된 자동차 이름 검증 (대소문자 구분)
+- [x] 중복 이름이 있으면 \`InvalidCarNameException\` 발생
+- [x] 커스텀 설정 지원 (최대/최소 길이 설정 가능)
+- [x] 테스트 코드 작성 완료 (CarNameValidatorTest.java)
 
 ### 3️⃣ 자동차 생성 및 관리 (\`Cars\`, \`Car\`)
 - [ ] 쉼표(\`,\`)를 기준으로 자동차 이름 분리
@@ -476,9 +533,15 @@ racingcar/
 - [ ] 우승자 결정 테스트 (공동)
 
 **CarNameValidator 테스트**
-- [ ] 유효한 이름 검증 테스트
-- [ ] 5자 초과 예외 테스트
-- [ ] 빈 문자열 예외 테스트
+- [x] 유효한 이름 검증 테스트 (영문, 한글, 숫자 조합)
+- [x] 5자 초과 예외 테스트 (`ErrorType.INVALID_LENGTH`)
+- [x] 빈 리스트 예외 테스트 (`ErrorType.EMPTY`)
+- [x] null 입력 예외 테스트 (`ErrorType.EMPTY`)
+- [x] 빈 문자열 예외 테스트 (`ErrorType.EMPTY`)
+- [x] 공백 포함 예외 테스트 (`ErrorType.WHITESPACE`) - 파라미터화 테스트
+- [x] 특수문자 포함 예외 테스트 (`ErrorType.SPECIAL_CHAR`) - 파라미터화 테스트
+- [x] 중복 이름 예외 테스트 (`ErrorType.DUPLICATE`)
+- [x] 커스텀 설정 테스트 (최대/최소 길이 설정)
 
 **MovementGenerator 테스트**
 - [ ] 전진 조건 테스트 (4 이상)
@@ -578,7 +641,30 @@ jun : -----
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,javaji,jun
-Exception in thread "main" java.lang.IllegalArgumentException: 자동차 이름은 5자 이하여야 합니다.
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: INVALID_LENGTH
+	at racingcar.domain.CarNameValidator.validateLength(CarNameValidator.java:82)
+	...
+[ERROR] 자동차 이름은 1자 이상 5자 이하여야 합니다.
+```
+
+### ❌ 예외 발생 (중복 이름)
+```
+경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
+pobi,jun,pobi
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: DUPLICATE
+	at racingcar.domain.CarNameValidator.validateNoDuplicateName(CarNameValidator.java:74)
+	...
+[ERROR] 중복된 자동차 이름이 있습니다.
+```
+
+### ❌ 예외 발생 (특수문자 포함)
+```
+경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
+pobi,jun@
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: SPECIAL_CHAR
+	at racingcar.domain.CarNameValidator.validateNoSpecialCharacters(CarNameValidator.java:98)
+	...
+[ERROR] 자동차 이름은 한글, 영문, 숫자만 사용 가능합니다.
 ```
 
 ### ❌ 예외 발생 (잘못된 시도 횟수)
