@@ -314,11 +314,11 @@ racingcar/
 │   ├── RacingGame.java        (경주 게임 전체 관리)
 │   ├── Cars.java              (자동차 일급 컬렉션)
 │   ├── CarNameValidator.java (자동차 이름 검증)
-│   ├── AssertMessage.java     (assertion 메시지 상수)
 │   ├── AttemptCountValidator.java (시도 횟수 검증)
 │   ├── MovementGenerator.java (전진 여부 결정)
 │   └── exception/             (예외 클래스)
-│       └── InvalidCarNameException.java (자동차 이름 예외)
+│       ├── InvalidCarNameException.java (자동차 이름 예외)
+│       └── InvalidAttemptCountException.java (시도 횟수 예외)
 └── view/                      (입출력)
     ├── InputView.java         (사용자 입력 처리)
     ├── OutputView.java        (결과 출력 처리)
@@ -362,23 +362,26 @@ racingcar/
 - 빈 문자열, 공백 포함 체크 (공백, 탭)
 - 특수문자 포함 체크 (한글/영문/숫자만 허용)
 - 중복 이름 체크 (대소문자 구분)
+- 생성자 파라미터 검증으로 방어적 프로그래밍 적용
 - `InvalidCarNameException` 예외 발생
-
-**\`domain/AssertMessage\`**
-- assertion 메시지 상수 중앙 관리
-- 개발 단계에서의 논리적 오류 탐지
-- 각 검증 메서드별 assertion 메시지 제공
 
 **\`domain/exception/InvalidCarNameException\`**
 - 자동차 이름 검증 실패 시 발생하는 커스텀 예외
 - `ErrorType` enum으로 예외 유형 분류 (EMPTY, DUPLICATE, INVALID_LENGTH, WHITESPACE, SPECIAL_CHAR)
 - `IllegalArgumentException` 상속
 
+**\`domain/exception/InvalidAttemptCountException\`**
+- 시도 횟수 검증 실패 시 발생하는 커스텀 예외
+- `ErrorType` enum으로 예외 유형 분류 (EMPTY, NOT_NUMBER, OUT_OF_RANGE)
+- `IllegalArgumentException` 상속
+
 **\`domain/AttemptCountValidator\`**
 - 시도 횟수 유효성 검증
-- 빈 입력 체크
-- 숫자 형식 검증
-- 범위 검증 (1 이상 20 이하)
+- 빈 입력 체크 (null, 빈 문자열)
+- 숫자 형식 검증 (NumberFormatException 처리)
+- 범위 검증 (1 이상 20 이하, 커스텀 설정 가능)
+- 생성자 파라미터 검증으로 방어적 프로그래밍 적용
+- `InvalidAttemptCountException` 예외 발생
 
 **\`domain/MovementGenerator\`**
 - 전진 여부 결정 로직
@@ -450,14 +453,14 @@ racingcar/
 - [ ] 자동차 초기 위치는 0
 
 ### 4️⃣ 시도 횟수 검증 (\`AttemptCountValidator\`)
-- [ ] 빈 입력 검증 (아무것도 입력하지 않은 경우)
-- [ ] 빈 입력 시 \`IllegalArgumentException\` 발생
-- [ ] 입력값이 숫자인지 검증
-- [ ] 숫자가 아니면 \`IllegalArgumentException\` 발생
-- [ ] 0 이하의 값 검증
-- [ ] 0 이하이면 \`IllegalArgumentException\` 발생
-- [ ] 20 초과 값 검증
-- [ ] 20 초과이면 \`IllegalArgumentException\` 발생
+- [x] 빈 입력 검증 (아무것도 입력하지 않은 경우)
+- [x] 빈 입력 시 \`InvalidAttemptCountException\` 발생
+- [x] 입력값이 숫자인지 검증
+- [x] 숫자가 아니면 \`InvalidAttemptCountException\` 발생
+- [x] 범위 검증 (1 이상 20 이하)
+- [x] 범위를 벗어나면 \`InvalidAttemptCountException\` 발생
+- [x] 커스텀 설정 지원 (최소/최대 범위 설정 가능)
+- [x] 생성자 파라미터 검증 (방어적 프로그래밍)
 
 ### 5️⃣ 경주 진행 (\`RacingGame\`, \`MovementGenerator\`)
 - [ ] 주어진 횟수만큼 라운드 반복

@@ -8,17 +8,21 @@ import racingcar.domain.exception.InvalidCarNameException;
 import racingcar.domain.exception.InvalidCarNameException.ErrorType;
 
 public class CarNameValidator {
-	private final int maxNameLength;
 	private final int minNameLength;
+	private final int maxNameLength;
 	private final Pattern validNamePattern;
 
 	public CarNameValidator() {
-		this(5, 1);
+		this(1, 5);
 	}
 
-	public CarNameValidator(int maxNameLength, int minNameLength) {
-		this.maxNameLength = maxNameLength;
+	public CarNameValidator(int minNameLength, int maxNameLength) {
+		assert minNameLength > 0 : "minNameLength는 0보다 커야 합니다";
+		assert maxNameLength > 0 : "maxNameLength는 0보다 커야 합니다";
+		assert minNameLength <= maxNameLength : "minNameLength는 maxNameLength 이하여야 합니다";
+
 		this.minNameLength = minNameLength;
+		this.maxNameLength = maxNameLength;
 		this.validNamePattern = Pattern.compile("^[a-zA-Z가-힣0-9]+$");
 	}
 

@@ -145,7 +145,7 @@ public class CarNameValidatorTest {
 	@DisplayName("커스텀 설정으로 Validator를 생성할 수 있다")
 	void 커스텀_설정으로_Validator를_생성할_수_있다() {
 		// given
-		CarNameValidator customValidator = new CarNameValidator(10, 1);
+		CarNameValidator customValidator = new CarNameValidator(1, 10);
 		List<String> names = Arrays.asList("longnameok", "short");
 
 		// when & then
