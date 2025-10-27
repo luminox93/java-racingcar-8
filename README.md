@@ -479,10 +479,10 @@ racingcar/
 
 ### 5️⃣ 경주 진행 (\`RacingGame\`, \`MovementGenerator\`)
 - [ ] 주어진 횟수만큼 라운드 반복
-- [ ] 각 라운드마다 모든 자동차에 대해:
-  - [ ] 0~9 사이의 무작위 값 생성 (\`Randoms.pickNumberInRange(0, 9)\`)
-  - [ ] 값이 4 이상이면 전진
-  - [ ] 값이 4 미만이면 정지
+- [x] 각 라운드마다 모든 자동차에 대해:
+  - [x] 0~9 사이의 무작위 값 생성 (\`Randoms.pickNumberInRange(0, 9)\`)
+  - [x] 값이 4 이상이면 전진
+  - [x] 값이 4 미만이면 정지
 - [ ] 각 라운드 결과를 반환
 
 ### 6️⃣ 우승자 결정 (\`RacingGame\`, \`Cars\`)
