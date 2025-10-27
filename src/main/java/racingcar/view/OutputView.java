@@ -1,9 +1,10 @@
 package racingcar.view;
 
+import racingcar.domain.Car;
+import racingcar.domain.Cars;
 import racingcar.view.messages.OutputMessage;
 
 import java.util.List;
-import java.util.Map;
 
 public class OutputView {
 	private static final String POSITION_DELIMITER = " : ";
@@ -15,12 +16,16 @@ public class OutputView {
 		System.out.println(OutputMessage.RESULT_HEADER.getMessage());
 	}
 
-	public void printCarPosition(String carName, int position) {
-		System.out.println(carName + POSITION_DELIMITER + POSITION_MARK.repeat(position));
+	public void printRoundResult(Cars cars) {
+		List<Car> carList = cars.getCars();
+		for (Car car : carList) {
+			printCarPosition(car.getName(), car.getPosition());
+		}
+		printRoundSeparator();
 	}
 
-	public void printRoundResult(Map<String, Integer> carPositions) {
-		carPositions.forEach(this::printCarPosition);
+	public void printCarPosition(String carName, int position) {
+		System.out.println(carName + POSITION_DELIMITER + POSITION_MARK.repeat(position));
 	}
 
 	public void printRoundSeparator() {
