@@ -6,6 +6,7 @@ import racingcar.domain.exception.InvalidCarNameException.ErrorType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 class CarTest {
 
@@ -18,8 +19,10 @@ class CarTest {
 		Car car = new Car(name);
 
 		// then
-		assertThat(car.getName()).isEqualTo(name);
-		assertThat(car.getPosition()).isZero();
+		assertAll(
+				() -> assertThat(car.getName()).isEqualTo(name),
+				() -> assertThat(car.getPosition()).isZero()
+		);
 	}
 
 	@Test
@@ -154,8 +157,10 @@ class CarTest {
 		Car movedCar = originalCar.move(true);
 
 		// then
-		assertThat(originalCar.getPosition()).isEqualTo(originalPosition);
-		assertThat(movedCar.getPosition()).isEqualTo(originalPosition + 1);
+		assertAll(
+				() -> assertThat(originalCar.getPosition()).isEqualTo(originalPosition),
+				() -> assertThat(movedCar.getPosition()).isEqualTo(originalPosition + 1)
+		);
 	}
 
 	@Test
@@ -165,5 +170,53 @@ class CarTest {
 
 		// then
 		assertThat(car.getPosition()).isZero();
+	}
+
+	@Test
+	void 이름이_정확히_1자인_자동차를_생성할_수_있다() {
+		// given
+		String name = "a";
+
+		// when
+		Car car = new Car(name);
+
+		// then
+		assertThat(car.getName()).isEqualTo(name);
+	}
+
+	@Test
+	void 이름이_정확히_5자인_자동차를_생성할_수_있다() {
+		// given
+		String name = "abcde";
+
+		// when
+		Car car = new Car(name);
+
+		// then
+		assertThat(car.getName()).isEqualTo(name);
+	}
+
+	@Test
+	void 한글_영문_숫자_혼합_이름으로_자동차를_생성할_수_있다() {
+		// given
+		String name = "포bi1";
+
+		// when
+		Car car = new Car(name);
+
+		// then
+		assertThat(car.getName()).isEqualTo(name);
+	}
+
+	@Test
+	void 자동차가_여러_번_정지해도_위치는_변하지_않는다() {
+		// given
+		Car car = new Car("pobi");
+
+		// when
+		Car finalCar = car.move(false).move(false).move(false);
+
+		// then
+		assertThat(finalCar.getPosition()).isZero();
 	}
 }

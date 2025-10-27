@@ -9,6 +9,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 class CarsTest {
 
@@ -92,8 +93,10 @@ class CarsTest {
 
 		// then
 		List<Car> carList = movedCars.getCars();
-		assertThat(carList.get(0).getPosition()).isEqualTo(1);
-		assertThat(carList.get(1).getPosition()).isEqualTo(1);
+		assertAll(
+				() -> assertThat(carList.get(0).getPosition()).isEqualTo(1),
+				() -> assertThat(carList.get(1).getPosition()).isEqualTo(1)
+		);
 	}
 
 	@Test
@@ -107,9 +110,11 @@ class CarsTest {
 		Cars movedCars = cars.moveAll(generator);
 
 		// then
-		assertThat(cars).isNotSameAs(movedCars);
-		assertThat(cars.getCars().get(0).getPosition()).isZero();
-		assertThat(movedCars.getCars().get(0).getPosition()).isEqualTo(1);
+		assertAll(
+				() -> assertThat(cars).isNotSameAs(movedCars),
+				() -> assertThat(cars.getCars().get(0).getPosition()).isZero(),
+				() -> assertThat(movedCars.getCars().get(0).getPosition()).isEqualTo(1)
+		);
 	}
 
 	@Test
@@ -129,10 +134,12 @@ class CarsTest {
 				.toList();
 
 		// then
-		assertThat(winners).hasSize(2);
-		assertThat(winners.get(0).getName()).isEqualTo("pobi");
-		assertThat(winners.get(1).getName()).isEqualTo("jun");
-		assertThat(winners.get(0).getPosition()).isEqualTo(3);
+		assertAll(
+				() -> assertThat(winners).hasSize(2),
+				() -> assertThat(winners.get(0).getName()).isEqualTo("pobi"),
+				() -> assertThat(winners.get(1).getName()).isEqualTo("jun"),
+				() -> assertThat(winners.get(0).getPosition()).isEqualTo(3)
+		);
 	}
 
 	@Test
@@ -185,5 +192,88 @@ class CarsTest {
 		// then
 		assertThat(winnerNames).hasSize(3);
 		assertThat(winnerNames).containsExactly("pobi", "woni", "jun");
+	}
+
+	@Test
+	void 자동차가_1대만_있는_경우() {
+		// given
+		List<String> names = Arrays.asList("pobi");
+
+		// when
+		Cars cars = new Cars(names);
+
+		// then
+		assertAll(
+				() -> assertThat(cars.getCars()).hasSize(1),
+				() -> assertThat(cars.getCars().get(0).getName()).isEqualTo("pobi")
+		);
+	}
+
+	@Test
+	void 자동차가_1대일_때_우승자는_1명이다() {
+		// given
+		List<String> names = Arrays.asList("pobi");
+		Cars cars = new Cars(names);
+		MovementGenerator generator = () -> true;
+
+		// when
+		Cars movedCars = cars.moveAll(generator);
+		List<String> winnerNames = movedCars.getWinnerNames();
+
+		// then
+		assertAll(
+				() -> assertThat(winnerNames).hasSize(1),
+				() -> assertThat(winnerNames).containsExactly("pobi")
+		);
+	}
+
+	@Test
+	void 자동차가_많은_경우_모두_정상_생성된다() {
+		// given
+		List<String> names = Arrays.asList("car1", "car2", "car3", "car4", "car5",
+				"car6", "car7", "car8", "car9", "car10");
+
+		// when
+		Cars cars = new Cars(names);
+
+		// then
+		assertThat(cars.getCars()).hasSize(10);
+	}
+
+	@Test
+	void 모든_자동차가_이동하지_않으면_모두_위치_0이다() {
+		// given
+		List<String> names = Arrays.asList("pobi", "woni", "jun");
+		Cars cars = new Cars(names);
+		MovementGenerator generator = () -> false;
+
+		// when
+		Cars movedCars = cars.moveAll(generator).moveAll(generator).moveAll(generator);
+
+		// then
+		List<Car> carList = movedCars.getCars();
+		assertAll(
+				() -> assertThat(carList.get(0).getPosition()).isZero(),
+				() -> assertThat(carList.get(1).getPosition()).isZero(),
+				() -> assertThat(carList.get(2).getPosition()).isZero()
+		);
+	}
+
+	@Test
+	void 모든_자동차가_이동하지_않으면_모두_우승자다() {
+		// given
+		List<String> names = Arrays.asList("pobi", "woni", "jun");
+		Cars cars = new Cars(names);
+		MovementGenerator generator = () -> false;
+
+		// when
+		Cars movedCars = cars.moveAll(generator);
+		List<String> winnerNames = movedCars.getWinnerNames();
+
+		// then
+		assertAll(
+				() -> assertThat(winnerNames).hasSize(3),
+				() -> assertThat(winnerNames).containsExactly("pobi", "woni", "jun")
+		);
 	}
 }
