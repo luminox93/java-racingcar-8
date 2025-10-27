@@ -13,66 +13,97 @@
 
 ### 🏗️ 설계 의도
 
-**1. 계층 분리 (MVC 패턴)**
-- `View`: 사용자 입출력만 담당 (`InputView`, `OutputView`)
-- `Controller`: 전체 흐름 제어 및 계층 간 연결 (`RacingGameController`)
-- `Domain`: 핵심 비즈니스 로직 (`Car`, `Cars`, `RacingGame`, `Validator`)
+**1. 계층 분리 - MVC 패턴**
+- `View`: 사용자 입출력 및 데이터 파싱
+- `Controller`: 전체 흐름 제어
+- `Domain`: 핵심 비즈니스 로직 및 검증
 
-**2. 단일 책임 원칙 (SRP)**
-- `CarNameValidator`: 자동차 이름 검증만 담당 (검증 로직 분리)
-- `AttemptCountValidator`: 시도 횟수 검증만 담당
-- `MovementGenerator`: 전진 여부 결정만 담당
-- `InputView`: 사용자 입력만 담당 (검증은 Validator에 위임)
-- `OutputView`: 출력 형식만 담당
+**2. 단일 책임 원칙**
+- `Car`: 개별 자동차의 상태 및 이름 검증
+- `Cars`: 자동차 컬렉션 관리 및 우승자 판별
+- `AttemptCount`: 시도 횟수 검증 및 관리
+- `InputView`: 사용자 입력 및 파싱
+- `OutputView`: 출력 형식 및 표시
+- `MovementGenerator`: 전진 여부 결정
+- `RacingCarController`: 흐름 제어
 - 각 클래스는 **하나의 변경 이유**만 가짐
 
-**3. 일급 컬렉션 활용**
+**3. 도메인 객체의 책임 강화**
+- 검증 로직을 도메인 객체 내부로 이동
+- `Car`가 자신의 이름을 스스로 검증
+- `Cars`가 중복 검증 수행
+- `AttemptCount`가 시도 횟수를 스스로 검증
+- 도메인 객체가 자신의 유효성을 보장 → 응집도 향상
+
+**4. 일급 컬렉션 활용**
 - `Cars` 클래스로 자동차 목록을 감싸서 관리
 - 컬렉션 관련 비즈니스 로직(우승자 찾기, 이동 처리)을 `Cars`에 집중
 - 외부에서 내부 컬렉션을 직접 조작하지 못하도록 캡슐화
 
-**4. 불변 객체 설계**
-- `Car` 객체는 이동 시 새로운 객체를 반환 (기존 객체 상태 변경 없음)
+**5. 불변 객체 설계**
+- `Car` 객체는 이동 시 새로운 객체를 반환
+- `Cars` 객체도 `moveAll()` 시 새로운 객체를 반환
 - 모든 필드를 `final`로 선언하여 불변성 보장
-- 예측 가능한 동작과 부작용(side effect) 방지
+- 예측 가능한 동작과 부작용 방지
+- Garbage Collection이 사용하지 않는 객체 자동 정리
 
-**5. 테스트 가능한 구조**
+**6. 원시값 포장**
+- `String` → `AttemptCount` 도메인 객체로 포장
+- 타입 안전성 향상
+- 검증 로직을 도메인 객체 내부에 캡슐화
+
+**7. Tell, Don't Ask 원칙**
+- Controller가 도메인 데이터를 꺼내서 가공하지 않음
+- `outputView.printRoundResult(cars)` - Cars 객체를 그대로 전달
+- `cars.getWinnerNames()` - Cars가 직접 우승자 이름 목록 제공
+- OutputView가 Cars 객체를 받아서 내부 처리
+
+**8. 테스트 가능한 구조**
 - `MovementGenerator`를 인터페이스로 분리하여 랜덤값 테스트 가능
+- `RandomMovementGenerator` - 실제 랜덤 생성
+- 테스트용 고정값 생성기 구현 가능
 - 각 계층을 독립적으로 테스트 가능
-- 검증 로직을 Validator로 분리하여 단위 테스트 용이
-- `CarNameValidator`는 JUnit 5와 AssertJ로 테스트 완료
+- 의존성 주입으로 Mock 객체 사용 가능
 
-**6. 커스텀 예외와 타입 안전성**
-- `InvalidCarNameException`은 `IllegalArgumentException`을 상속 (요구사항 충족)
-- `ErrorType` enum으로 예외 유형을 타입 안전하게 분류 (EMPTY, DUPLICATE, INVALID_LENGTH, WHITESPACE, SPECIAL_CHAR)
-- `ErrorMessage`에서 예외 타입에 따라 사용자 친화적 메시지 제공
-- 예외 발생 지점과 메시지 표시 로직 분리
-- 커스텀 예외 사용으로 도메인 의도를 명확히 표현
+**9. 커스텀 예외와 타입 안전성**
+- `InvalidCarNameException` - 자동차 이름 검증 실패 예외
+- `InvalidAttemptCountException` - 시도 횟수 검증 실패 예외
+- 모두 `IllegalArgumentException`을 상속하여 요구사항 충족
+- `ErrorType` enum으로 예외 유형을 타입 안전하게 분류
+- 각 ErrorType이 에러 메시지를 직접 관리
+- 도메인 의도를 명확히 표현
 
 ### ⚙️ 실행 흐름
 ```
 1. 사용자 입력
    ├─ 자동차 이름 입력 (쉼표 구분)
+   │  └─ InputView에서 파싱하여 List<String> 반환
    └─ 시도 횟수 입력
 
-2. 입력 검증
-   ├─ CarNameValidator: 이름 검증 (null, 빈 리스트, 길이, 빈 문자열, 공백, 특수문자, 중복)
-   │  └─ 검증 실패 시 InvalidCarNameException 발생 (ErrorType으로 분류)
-   └─ AttemptCountValidator: 횟수 검증 (빈 입력, 숫자 형식, 범위)
+2. 도메인 객체 생성 및 검증
+   ├─ Cars 생성: 빈 리스트, 중복 검증
+   │  └─ 각 Car 생성: 이름 검증 (null, 빈값, 길이, 공백, 특수문자)
+   │     └─ 검증 실패 시 InvalidCarNameException 발생
+   └─ AttemptCount 생성: 빈 입력, 숫자 형식, 범위 검증
+      └─ 검증 실패 시 InvalidAttemptCountException 발생
 
-3. 게임 초기화
-   ├─ Cars 일급 컬렉션 생성
-   └─ RacingGame 객체 생성 (히스토리 관리)
+3. 경주 진행
+   ├─ playRace() 메서드 실행
+   ├─ 각 라운드마다:
+   │  ├─ Cars.moveAll(generator) 호출
+   │  ├─ 각 Car마다 generator.isMovable() 호출
+   │  ├─ 랜덤값 생성 (0~9)
+   │  ├─ 4 이상이면 전진, 새 Car 객체 반환
+   │  ├─ 4 미만이면 정지, 기존 Car 객체 반환
+   │  ├─ 모든 Car를 모아 새 Cars 객체 생성
+   │  └─ OutputView.printRoundResult(cars) 호출
+   └─ 최종 Cars 객체 반환
 
-4. 경주 진행 (라운드 반복)
-   ├─ 각 자동차마다 랜덤값 생성 (0~9)
-   ├─ 4 이상이면 전진 (새 Car 객체 반환)
-   ├─ 라운드 결과를 히스토리에 저장
-   └─ 현재 라운드 상태 출력
-
-5. 우승자 결정
-   ├─ Cars에서 최대 위치 찾기
+4. 우승자 결정
+   ├─ finalCars.getWinnerNames() 호출
+   ├─ Cars 내부에서 최대 위치 찾기
    ├─ 최대 위치와 같은 자동차들 필터링
+   ├─ Car 목록을 이름 목록으로 변환
    └─ 단독/공동 우승자 출력
 ```
 
@@ -91,29 +122,29 @@
 
 > **예외 처리**
 >
-> **자동차 이름 입력 검증** (`InvalidCarNameException` 발생)
-> - **null 입력**: `null` 입력 시 `ErrorType.EMPTY`
+> **자동차 이름 입력 검증**
+> - **null 입력**: `null` 입력 시 `InvalidCarNameException` 발생
 >   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
-> - **빈 리스트**: 빈 리스트인 경우 `ErrorType.EMPTY`
+> - **빈 리스트**: 빈 리스트인 경우
 >   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
-> - **빈 문자열**: 빈 문자열이 포함된 경우 (예: `"pobi,,jun"`) `ErrorType.EMPTY`
+> - **빈 문자열**: 빈 문자열이 포함된 경우 예: `"pobi,,jun"`
 >   - 메시지: `[ERROR] 자동차 이름을 입력해주세요.`
-> - **이름 길이**: 이름이 1자 미만 또는 5자를 초과하는 경우 `ErrorType.INVALID_LENGTH`
->   - 메시지: `[ERROR] 자동차 이름은 1자 이상 5자 이하여야 합니다.`
-> - **공백 포함**: 이름에 공백(띄어쓰기, 탭)이 포함된 경우 (예: `"po bi"`) `ErrorType.WHITESPACE`
+> - **이름 길이**: 이름이 1자 미만 또는 5자를 초과하는 경우
+>   - 메시지: `[ERROR] 자동차 이름의 길이가 올바르지 않습니다.`
+> - **공백 포함**: 이름에 공백이 포함된 경우 예: `"po bi"`
 >   - 메시지: `[ERROR] 자동차 이름에 공백을 포함할 수 없습니다.`
-> - **특수문자 포함**: 한글, 영문, 숫자를 제외한 특수문자가 포함된 경우 `ErrorType.SPECIAL_CHAR`
+> - **특수문자 포함**: 한글, 영문, 숫자를 제외한 특수문자가 포함된 경우
 >   - 메시지: `[ERROR] 자동차 이름은 한글, 영문, 숫자만 사용 가능합니다.`
-> - **중복 이름**: 중복된 자동차 이름이 있는 경우 (대소문자 구분) `ErrorType.DUPLICATE`
+> - **중복 이름**: 중복된 자동차 이름이 있는 경우
 >   - 메시지: `[ERROR] 중복된 자동차 이름이 있습니다.`
 >
-> **시도 횟수 입력 검증** (`IllegalArgumentException` 발생)
+> **시도 횟수 입력 검증**
 > - **빈 입력**: 아무것도 입력하지 않은 경우
 >   - 메시지: `[ERROR] 시도 횟수를 입력해주세요.`
 > - **숫자가 아닌 값**: 시도 횟수에 숫자가 아닌 값이 입력된 경우
 >   - 메시지: `[ERROR] 시도 횟수는 숫자여야 합니다.`
-> - **0 이하의 값**: 0 이하의 값이 입력된 경우 `IllegalArgumentException` 발생
-> - **상한값 초과**: 20을 초과하는 값이 입력된 경우 `IllegalArgumentException` 발생
+> - **범위 초과**: 1 미만 또는 20을 초과하는 값이 입력된 경우
+>   - 메시지: `[ERROR] 시도 횟수가 규칙에 어긋납니다.`
 >
 > ⚠️ 예외 발생 시 애플리케이션은 종료되어야 한다.
 
@@ -129,48 +160,56 @@
 flowchart TD
     Start([게임 시작]) --> Input1[자동차 이름 입력 요청]
     Input1 --> GetNames[사용자 입력 받기]
-    GetNames --> ValidateNames{이름 검증}
+    GetNames --> Parse[InputView에서 파싱<br/>쉼표 기준 분리]
+    Parse --> CreateCars[Cars 객체 생성]
 
-    ValidateNames -->|빈 입력| Error1[IllegalArgumentException:<br/>입력 오류]
-    ValidateNames -->|5자 초과| Error1
-    ValidateNames -->|빈 문자열 포함| Error1
-    ValidateNames -->|공백 포함| Error1
-    ValidateNames -->|특수문자 포함| Error1
-    ValidateNames -->|중복 이름| Error1
-    ValidateNames -->|통과| Input2[시도 횟수 입력 요청]
+    CreateCars --> ValidateCars{Cars 검증}
+    ValidateCars -->|빈 리스트| Error1[InvalidCarNameException]
+    ValidateCars -->|중복 이름| Error1
+    ValidateCars -->|통과| CreateEachCar[각 Car 객체 생성]
+
+    CreateEachCar --> ValidateCar{Car 이름 검증}
+    ValidateCar -->|null| Error1
+    ValidateCar -->|빈 문자열| Error1
+    ValidateCar -->|길이 초과| Error1
+    ValidateCar -->|공백 포함| Error1
+    ValidateCar -->|특수문자 포함| Error1
+    ValidateCar -->|통과| Input2[시도 횟수 입력 요청]
 
     Input2 --> GetAttempts[사용자 입력 받기]
-    GetAttempts --> ValidateAttempts{횟수 검증}
+    GetAttempts --> CreateAttemptCount[AttemptCount 객체 생성]
 
-    ValidateAttempts -->|빈 입력| Error2[IllegalArgumentException:<br/>입력 오류]
+    CreateAttemptCount --> ValidateAttempts{횟수 검증}
+    ValidateAttempts -->|빈 입력| Error2[InvalidAttemptCountException]
     ValidateAttempts -->|숫자 아님| Error2
-    ValidateAttempts -->|0 이하| Error2
-    ValidateAttempts -->|20 초과| Error2
-    ValidateAttempts -->|통과| Init[게임 초기화]
-
-    Init --> CreateCars[자동차 객체 생성<br/>Cars 일급 컬렉션]
-    CreateCars --> RaceStart[경주 시작<br/>실행 결과 출력]
+    ValidateAttempts -->|범위 초과| Error2
+    ValidateAttempts -->|통과| RaceStart[경주 시작<br/>실행 결과 헤더 출력]
 
     RaceStart --> RoundCheck{모든 라운드<br/>완료?}
-    RoundCheck -->|아니오| RoundStart[라운드 시작]
+    RoundCheck -->|아니오| MoveAll[Cars.moveAll 호출]
 
-    RoundStart --> CarLoop[각 자동차 순회]
-    CarLoop --> GenerateRandom[랜덤값 생성<br/>0-9 사이]
+    MoveAll --> CarLoop[각 자동차 순회]
+    CarLoop --> GenerateRandom[MovementGenerator<br/>랜덤값 생성 0-9]
     GenerateRandom --> MoveCheck{값이<br/>4 이상?}
 
-    MoveCheck -->|예| MoveForward[전진<br/>위치 +1]
-    MoveCheck -->|아니오| Stay[정지<br/>위치 유지]
+    MoveCheck -->|예| MoveForward[전진<br/>새 Car 객체 생성]
+    MoveCheck -->|아니오| Stay[정지<br/>기존 Car 반환]
 
     MoveForward --> NextCar{다음<br/>자동차?}
     Stay --> NextCar
 
     NextCar -->|있음| CarLoop
-    NextCar -->|없음| PrintRound[라운드 결과 출력<br/>각 자동차 위치]
+    NextCar -->|없음| NewCars[새 Cars 객체 생성]
+    NewCars --> PrintRound[OutputView.printRoundResult<br/>라운드 결과 출력]
     PrintRound --> RoundCheck
 
-    RoundCheck -->|예| FindWinner[우승자 결정<br/>최대 위치 찾기]
-    FindWinner --> CheckWinners{우승자<br/>수}
+    RoundCheck -->|예| ReturnFinal[최종 Cars 반환]
+    ReturnFinal --> GetWinners[finalCars.getWinnerNames]
+    GetWinners --> FindMax[최대 위치 찾기]
+    FindMax --> Filter[최대 위치와 같은<br/>자동차들 필터링]
+    Filter --> MapNames[Car 목록을<br/>이름 목록으로 변환]
 
+    MapNames --> CheckWinners{우승자<br/>수}
     CheckWinners -->|1명| PrintSingle[단독 우승자 출력]
     CheckWinners -->|2명 이상| PrintMultiple[공동 우승자 출력<br/>쉼표로 구분]
 
@@ -187,102 +226,154 @@ flowchart TD
     style Error2 fill:#ffcccc
     style MoveForward fill:#cce5ff
     style Stay fill:#f0f0f0
+    style NewCars fill:#ffffcc
+    style ReturnFinal fill:#ffdddd
 ```
 
-### 🔄 계층별 상호작용 (시퀀스 다이어그램)
+### 🔄 계층별 상호작용
 
 ```mermaid
 sequenceDiagram
     actor User as 사용자
     participant InputView as InputView
-    participant Controller as RacingGameController
-    participant NameValidator as CarNameValidator
-    participant CountValidator as AttemptCountValidator
+    participant Controller as RacingCarController
     participant Cars as Cars
     participant Car as Car
-    participant Game as RacingGame
+    participant AttemptCount as AttemptCount
     participant Generator as MovementGenerator
     participant OutputView as OutputView
 
     User->>InputView: 자동차 이름 입력
-    InputView->>Controller: 이름 문자열 전달
+    InputView->>InputView: 쉼표 기준 파싱
+    InputView->>Controller: List<String> 반환
 
-    Controller->>NameValidator: 이름 검증 (빈 입력)
-    Controller->>NameValidator: 이름 검증 (길이 5자 이하)
-    Controller->>NameValidator: 이름 검증 (공백 포함)
-    Controller->>NameValidator: 이름 검증 (특수문자 포함)
-    Controller->>NameValidator: 이름 검증 (중복 체크)
+    Controller->>Cars: new Cars(carNames)
+    Cars->>Cars: validateNames
+    Cars->>Cars: validateNoDuplicates
 
-    alt 검증 실패
-        NameValidator-->>Controller: IllegalArgumentException
-        Controller-->>User: 프로그램 종료
-    else 검증 성공
-        Controller->>Cars: 자동차 목록 생성
-        Cars->>Car: 각 자동차 생성
+    loop 각 이름
+        Cars->>Car: new Car(name)
+        Car->>Car: validateName
+        alt 검증 실패
+            Car-->>Controller: InvalidCarNameException
+            Controller-->>User: 프로그램 종료
+        end
     end
 
     User->>InputView: 시도 횟수 입력
-    InputView->>Controller: 횟수 전달
+    InputView->>Controller: String 반환
 
-    Controller->>CountValidator: 횟수 검증 (빈 입력)
-    Controller->>CountValidator: 횟수 검증 (숫자 형식)
-    Controller->>CountValidator: 횟수 검증 (1-20 범위)
+    Controller->>AttemptCount: new AttemptCount(input)
+    AttemptCount->>AttemptCount: validateNotEmpty
+    AttemptCount->>AttemptCount: validateNumeric
+    AttemptCount->>AttemptCount: validateRange
 
     alt 검증 실패
-        CountValidator-->>Controller: IllegalArgumentException
+        AttemptCount-->>Controller: InvalidAttemptCountException
         Controller-->>User: 프로그램 종료
-    else 검증 성공
-        Controller->>Game: 게임 초기화
     end
 
-    OutputView->>User: 실행 결과 헤더 출력
+    Controller->>OutputView: printResultHeader()
+    OutputView->>User: "실행 결과" 출력
 
     loop 각 라운드
-        Controller->>Game: 라운드 진행
+        Controller->>Cars: moveAll(generator)
+
         loop 각 자동차
-            Game->>Generator: 랜덤값 생성
-            Generator-->>Game: 0-9 사이 값
-            Game->>Car: 이동 여부 결정 (4 이상)
-            Car-->>Game: 새로운 Car 객체 반환
+            Cars->>Generator: isMovable()
+            Generator->>Generator: Randoms.pickNumberInRange(0, 9)
+            Generator-->>Cars: true/false
+            Cars->>Car: move(shouldMove)
+
+            alt 전진
+                Car-->>Cars: new Car(name, position+1)
+            else 정지
+                Car-->>Cars: this
+            end
         end
-        Game-->>Controller: 라운드 결과
-        Controller->>OutputView: 결과 출력 요청
-        OutputView->>User: 각 자동차 위치 표시
+
+        Cars-->>Controller: new Cars
+        Controller->>OutputView: printRoundResult(cars)
+        OutputView->>Cars: getCars()
+
+        loop 각 자동차
+            OutputView->>Car: getName(), getPosition()
+            OutputView->>User: 이름 : ---
+        end
+        OutputView->>User: 빈 줄 출력
     end
 
-    Controller->>Game: 우승자 결정
-    Game->>Cars: 최대 위치 찾기
-    Cars-->>Game: 우승자 목록
-    Game-->>Controller: 우승자 반환
-    Controller->>OutputView: 우승자 출력 요청
-    OutputView->>User: 최종 우승자 표시
+    Controller->>Cars: getWinnerNames()
+    Cars->>Cars: getWinners()
+    Cars->>Cars: map(Car::getName)
+    Cars-->>Controller: List<String> winnerNames
+
+    Controller->>OutputView: printWinners(winnerNames)
+    OutputView->>User: 최종 우승자 : pobi, jun
 ```
 
 ### 🏎️ 자동차 이동 결정 로직
 
 ```mermaid
 flowchart LR
-    Start([자동차]) --> Generate[랜덤값 생성<br/>Randoms.pickNumberInRange 0, 9]
-    Generate --> Check{값 >= 4?}
-    Check -->|예<br/>4,5,6,7,8,9| Forward[전진<br/>position + 1]
-    Check -->|아니오<br/>0,1,2,3| Stay[정지<br/>position 유지]
-    Forward --> NewCar[새 Car 객체 생성<br/>불변성 유지]
-    Stay --> Return[기존 Car 반환]
+    Start([Car 객체]) --> Generate[MovementGenerator<br/>isMovable 호출]
+    Generate --> Random[Randoms.pickNumberInRange<br/>0, 9]
+    Random --> Check{값 >= 4?}
+    Check -->|예<br/>4,5,6,7,8,9| Forward[전진 결정]
+    Check -->|아니오<br/>0,1,2,3| Stay[정지 결정]
+    Forward --> NewCar[새 Car 객체 생성<br/>new Car(name, position+1)]
+    Stay --> ReturnThis[기존 Car 객체 반환<br/>this]
     NewCar --> End([반환])
-    Return --> End
+    ReturnThis --> End
 
     style Forward fill:#cce5ff
     style Stay fill:#f0f0f0
     style NewCar fill:#ffffcc
+    style ReturnThis fill:#f0f0f0
+```
+
+### 🔄 불변 객체 패턴 흐름
+
+```mermaid
+flowchart TD
+    Start([Cars 객체 #1<br/>pobi:0, woni:0]) --> MoveAll1[moveAll 호출]
+    MoveAll1 --> Stream1[각 Car.move 호출]
+    Stream1 --> NewCars1[새 Cars 객체 #2<br/>pobi:1, woni:0]
+    NewCars1 --> GC1[#1은 참조 해제<br/>GC 대상]
+
+    NewCars1 --> MoveAll2[moveAll 호출]
+    MoveAll2 --> Stream2[각 Car.move 호출]
+    Stream2 --> NewCars2[새 Cars 객체 #3<br/>pobi:1, woni:1]
+    NewCars2 --> GC2[#2는 참조 해제<br/>GC 대상]
+
+    NewCars2 --> MoveAll3[moveAll 호출]
+    MoveAll3 --> Stream3[각 Car.move 호출]
+    Stream3 --> NewCars3[새 Cars 객체 #4<br/>pobi:2, woni:1]
+    NewCars3 --> GC3[#3은 참조 해제<br/>GC 대상]
+
+    NewCars3 --> Return[최종 Cars #4 반환]
+    Return --> Winner[우승자 판별에 사용]
+
+    style NewCars1 fill:#ffffcc
+    style NewCars2 fill:#ffffcc
+    style NewCars3 fill:#ffffcc
+    style GC1 fill:#ffcccc
+    style GC2 fill:#ffcccc
+    style GC3 fill:#ffcccc
+    style Return fill:#ccffcc
 ```
 
 ### 🏆 우승자 결정 로직
 
 ```mermaid
 flowchart TD
-    Start([모든 자동차]) --> FindMax[최대 위치값 찾기<br/>max position]
-    FindMax --> Filter[최대 위치와 같은<br/>자동차들 필터링]
-    Filter --> Count{우승자 수}
+    Start([최종 Cars 객체]) --> GetWinnerNames[getWinnerNames 호출]
+    GetWinnerNames --> GetWinners[getWinners 호출]
+    GetWinners --> FindMax[getMaxPosition<br/>최대 위치값 찾기]
+    FindMax --> Filter[최대 위치와 같은<br/>Car들 필터링]
+    Filter --> MapNames[map(Car::getName)<br/>이름 목록으로 변환]
+    MapNames --> Return[List<String> 반환]
+    Return --> Count{우승자 수}
 
     Count -->|1명| Single[단독 우승자]
     Count -->|2명 이상| Multiple[공동 우승자]
@@ -295,6 +386,7 @@ flowchart TD
 
     style Single fill:#ffd700
     style Multiple fill:#ffd700
+    style MapNames fill:#cce5ff
 ```
 
 <br>
@@ -306,126 +398,121 @@ flowchart TD
 ### 📦 패키지 구조
 ```
 racingcar/
-├── Application.java           (메인 실행)
-├── controller/                (흐름 제어)
-│   └── RacingGameController.java  (전체 실행 흐름 제어)
-├── domain/                    (비즈니스 로직)
-│   ├── Car.java               (개별 자동차)
-│   ├── RacingGame.java        (경주 게임 전체 관리)
-│   ├── Cars.java              (자동차 일급 컬렉션)
-│   ├── CarNameValidator.java (자동차 이름 검증)
-│   ├── CarNameConstants.java (자동차 이름 상수)
-│   ├── AttemptCountValidator.java (시도 횟수 검증)
-│   ├── MovementGenerator.java (전진 여부 결정)
-│   └── exception/             (예외 클래스)
-│       ├── InvalidCarNameException.java (자동차 이름 예외)
-│       ├── InvalidAttemptCountException.java (시도 횟수 예외)
-│       └── ErrorType.java     (예외 타입 분류)
-└── view/                      (입출력)
-    ├── InputView.java         (사용자 입력 처리)
-    ├── OutputView.java        (결과 출력 처리)
-    └── messages/              (메시지 상수)
-        ├── InputMessage.java  (입력 메시지)
-        ├── OutputMessage.java (출력 메시지)
-        └── ErrorMessage.java  (에러 메시지)
+├── Application.java
+├── controller/
+│   └── RacingCarController.java
+├── domain/
+│   ├── Car.java
+│   ├── Cars.java
+│   ├── AttemptCount.java
+│   ├── MovementGenerator.java
+│   ├── RandomMovementGenerator.java
+│   └── exception/
+│       ├── InvalidCarNameException.java
+│       └── InvalidAttemptCountException.java
+└── view/
+    ├── InputView.java
+    ├── OutputView.java
+    └── messages/
+        ├── InputMessage.java
+        └── OutputMessage.java
 ```
 
 ### 🎯 클래스 역할 및 책임
 
-**\`Application\`**
+**`Application`**
 - 프로그램의 시작점
-- Controller를 생성하고 실행
+- 의존성 주입
+- Controller 생성 및 실행
 
-**\`controller/RacingGameController\`**
-- 전체 실행 흐름 제어 (의존성 관리)
+**`controller/RacingCarController`**
+- 전체 실행 흐름 제어
 - View와 Domain 계층 연결
-- 입력 → 게임 초기화 → 경주 진행 → 우승자 결정 → 출력 흐름 관리
+- 입력 → 도메인 생성 → 경주 진행 → 우승자 출력
+- 파싱, 데이터 변환, 검증, 출력 형식 결정은 하지 않음
 
-**\`domain/Car\`**
-- 개별 자동차의 상태 관리 (이름, 위치)
-- 전진 로직 수행
-- 불변성 유지 (위치 변경 시 새 객체 반환)
-- 이름 검증 (빈 문자열, 길이 체크)
-- assertion을 통한 내부 상태 검증
+**`domain/Car`**
+- 개별 자동차의 상태 관리: 이름, 위치
+- 불변 객체: `final` 필드, 이동 시 새 객체 반환
+- 이름 검증 책임:
+  - null 체크
+  - 빈 문자열 체크
+  - 길이 체크: 1~5자
+  - 공백 포함 체크
+  - 특수문자 체크: 한글/영문/숫자만 허용
+- 전진 로직: `move(boolean shouldMove)`
+- private 생성자로 내부 상태 보장
 
-**\`domain/CarNameConstants\`**
-- 자동차 이름 관련 상수 관리
-- MIN_NAME_LENGTH (최소 이름 길이: 1)
-- MAX_NAME_LENGTH (최대 이름 길이: 5)
-- 유틸리티 클래스로 인스턴스화 방지
-
-**\`domain/RacingGame\`**
-- 경주 게임 전체 진행 로직
-- 라운드별 자동차 이동 처리
-- 라운드별 상태 히스토리 관리
-- 우승자 결정
-
-**\`domain/Cars\`**
+**`domain/Cars`**
 - 자동차 목록 일급 컬렉션
-- 자동차 생성 및 관리
-- 우승자 필터링
+- 컬렉션 검증 책임:
+  - 빈 리스트 체크
+  - 중복 이름 체크
+- 비즈니스 로직:
+  - `moveAll()`: 모든 자동차 이동, 새 Cars 반환
+  - `getWinners()`: 우승자 필터링
+  - `getWinnerNames()`: 우승자 이름 목록 반환
+  - `getMaxPosition()`: 최대 위치 계산
+- 불변 컬렉션으로 외부 수정 방지
 
-**\`domain/CarNameValidator\`**
-- 자동차 이름 유효성 검증
-- 이름 길이 체크 (1~5자, 커스텀 설정 가능)
-- null 입력, 빈 리스트 체크
-- 빈 문자열, 공백 포함 체크 (공백, 탭)
-- 특수문자 포함 체크 (한글/영문/숫자만 허용)
-- 중복 이름 체크 (대소문자 구분)
-- 생성자 파라미터 검증으로 방어적 프로그래밍 적용
-- `InvalidCarNameException` 예외 발생
-- `CarNameConstants`를 통한 상수 관리
+**`domain/AttemptCount`**
+- 시도 횟수를 도메인 객체로 포장
+- 검증 책임:
+  - 빈 입력 체크
+  - 숫자 형식 체크
+  - 범위 체크: 1~20
+- 타입 안전성 제공
+- `getValue()`로 int 값 제공
 
-**\`domain/exception/InvalidCarNameException\`**
-- 자동차 이름 검증 실패 시 발생하는 커스텀 예외
-- `ErrorType` enum으로 예외 유형 분류 (EMPTY, DUPLICATE, INVALID_LENGTH, WHITESPACE, SPECIAL_CHAR)
+**`domain/MovementGenerator`**
+- 전진 여부 결정 전략 인터페이스
+- `boolean isMovable()` 메서드 정의
+- 테스트 가능성 확보
+
+**`domain/RandomMovementGenerator`**
+- `MovementGenerator` 구현체
+- `Randoms.pickNumberInRange(0, 9)` 사용
+- 4 이상일 때 true 반환
+- 상수로 임계값 관리: MOVE_THRESHOLD = 4
+
+**`domain/exception/InvalidCarNameException`**
+- 자동차 이름 검증 실패 시 발생
 - `IllegalArgumentException` 상속
+- `ErrorType` enum: NULL, EMPTY, INVALID_LENGTH, WHITE_SPACE, SPECIAL_CHARACTER, DUPLICATE
+- 각 ErrorType이 에러 메시지 관리
 
-**\`domain/exception/InvalidAttemptCountException\`**
-- 시도 횟수 검증 실패 시 발생하는 커스텀 예외
-- `ErrorType` enum으로 예외 유형 분류 (EMPTY, NOT_NUMBER, OUT_OF_RANGE)
+**`domain/exception/InvalidAttemptCountException`**
+- 시도 횟수 검증 실패 시 발생
 - `IllegalArgumentException` 상속
+- `ErrorType` enum: EMPTY, NOT_NUMBER, OUT_OF_RANGE
+- 각 ErrorType이 에러 메시지 관리
 
-**\`domain/AttemptCountValidator\`**
-- 시도 횟수 유효성 검증
-- 빈 입력 체크 (null, 빈 문자열)
-- 숫자 형식 검증 (NumberFormatException 처리)
-- 범위 검증 (1 이상 20 이하, 커스텀 설정 가능)
-- 생성자 파라미터 검증으로 방어적 프로그래밍 적용
-- `InvalidAttemptCountException` 예외 발생
+**`view/InputView`**
+- 사용자 입력 담당
+- 파싱 책임: 쉼표 기준으로 이름 분리 → `List<String>` 반환
+- `readCarNames()`: 이름 입력 + 파싱
+- `readAttemptCount()`: 횟수 입력
+- `Console.readLine()`을 통한 입력 처리
+- 검증은 하지 않음
 
-**\`domain/MovementGenerator\`**
-- 전진 여부 결정 로직
-- \`Randoms.pickNumberInRange(0, 9)\` 활용
-- 4 이상일 때 전진
+**`view/OutputView`**
+- 결과 출력 담당
+- 출력 형식 책임:
+  - `printResultHeader()`: "실행 결과" 헤더
+  - `printRoundResult(Cars)`: Cars 객체를 받아서 라운드 결과 출력
+  - `printCarPosition(name, position)`: 개별 자동차 위치: `이름 : ---`
+  - `printRoundSeparator()`: 라운드 구분 빈 줄
+  - `printWinners(List<String>)`: 우승자 목록 출력
+- Tell, Don't Ask: Cars 객체를 받아서 내부 처리
+- 형식 상수 관리: POSITION_DELIMITER, POSITION_MARK, NAME_SEPARATOR
 
-**\`view/InputView\`**
-- 자동차 이름 입력 안내 및 받기 (`readCarNames()`)
-- 시도 횟수 입력 안내 및 받기 (`readAttemptCount()`)
-- \`Console.readLine()\`을 통한 입력 처리
-- 입력만 담당, 검증은 Validator에 위임
-
-**\`view/OutputView\`**
-- 실행 결과 헤더 출력 (`printResultHeader()`)
-- 개별 자동차 위치 출력 (`printCarPosition()`)
-- 라운드 전체 결과 출력 (`printRoundResult()`)
-- 라운드 구분선 출력 (`printRoundSeparator()`)
-- 최종 우승자 출력 (`printWinners()`)
-- 형식: `자동차이름 : ---`, 우승자: `최종 우승자 : pobi, jun`
-
-**\`view/messages/InputMessage\`**
-- 입력 관련 메시지 상수 관리
+**`view/messages/InputMessage`**
+- 입력 관련 메시지 상수 enum
 - REQUEST_CAR_NAMES, REQUEST_ATTEMPT_COUNT
 
-**\`view/messages/OutputMessage\`**
-- 출력 관련 메시지 상수 관리
+**`view/messages/OutputMessage`**
+- 출력 관련 메시지 상수 enum
 - RESULT_HEADER, WINNERS_PREFIX
-
-**\`view/messages/ErrorMessage\`**
-- 에러 메시지 상수 중앙 관리
-- `InvalidCarNameException`과 매핑하여 사용자 친화적 메시지 제공
-- `[ERROR]` 접두사 자동 추가
-- `from()` 메서드로 예외 타입에 따른 메시지 반환
 
 <br>
 
@@ -433,159 +520,91 @@ racingcar/
 
 ## 📝 구현할 기능 목록
 
-### 1️⃣ 입력 처리 (\`InputView\`)
+### 1️⃣ 입력 처리
 - [x] "경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)" 출력
-- [x] 자동차 이름 문자열 입력 받기 (\`Console.readLine()\` 사용)
+- [x] 자동차 이름 문자열 입력 받기
+- [x] 쉼표 기준 파싱하여 `List<String>` 반환
 - [x] "시도할 횟수는 몇 회인가요?" 출력
-- [x] 시도 횟수 입력 받기 (\`Console.readLine()\` 사용)
+- [x] 시도 횟수 입력 받기
 
-### 2️⃣ 자동차 이름 검증 (\`CarNameValidator\`)
+### 2️⃣ 자동차 이름 검증
 - [x] null 입력 검증
-- [x] null 입력 시 \`InvalidCarNameException\` 발생
-- [x] 빈 리스트 검증 (아무것도 입력하지 않은 경우)
-- [x] 빈 리스트 시 \`InvalidCarNameException\` 발생
-- [x] 자동차 이름이 1~5자 범위인지 검증
-- [x] 이름이 범위를 벗어나면 \`InvalidCarNameException\` 발생
-- [x] 빈 문자열 이름 검증 (예: "pobi,,jun")
-- [x] 빈 문자열이 있으면 \`InvalidCarNameException\` 발생
-- [x] 이름에 공백(띄어쓰기, 탭) 포함 검증
-- [x] 공백이 포함되면 \`InvalidCarNameException\` 발생
-- [x] 특수문자 포함 검증 (한글/영문/숫자만 허용)
-- [x] 특수문자가 포함되면 \`InvalidCarNameException\` 발생
-- [x] 중복된 자동차 이름 검증 (대소문자 구분)
-- [x] 중복 이름이 있으면 \`InvalidCarNameException\` 발생
-- [x] 커스텀 설정 지원 (최대/최소 길이 설정 가능)
-- [x] 테스트 코드 작성 완료 (CarNameValidatorTest.java)
+- [x] 빈 문자열 검증
+- [x] 이름 길이 검증: 1~5자
+- [x] 공백 포함 검증
+- [x] 특수문자 포함 검증: 한글/영문/숫자만 허용
+- [x] 정규식 패턴으로 검증: `^[a-zA-Z가-힣0-9]+$`
 
-### 3️⃣ 자동차 생성 및 관리 (\`Cars\`, \`Car\`)
-- [x] 쉼표(\`,\`)를 기준으로 자동차 이름 분리
-- [x] 각 이름으로 \`Car\` 객체 생성
+### 3️⃣ 자동차 컬렉션 검증
+- [x] 빈 리스트 검증
+- [x] 중복 이름 검증
+- [x] HashSet으로 중복 체크
+- [x] 각 이름으로 Car 객체 생성
+
+### 4️⃣ 시도 횟수 검증
+- [x] 빈 입력 검증
+- [x] 숫자 형식 검증
+- [x] 범위 검증: 1~20
+- [x] 생성자에서 모든 검증 수행
+
+### 5️⃣ 자동차 생성 및 관리
 - [x] 자동차 초기 위치는 0
-- [x] 불변 객체로 설계 (final 필드)
+- [x] 불변 객체로 설계
 - [x] 전진 시 새로운 Car 객체 반환
-- [x] 생성자에서 이름 검증 수행
+- [x] 정지 시 기존 Car 객체 반환
 - [x] private 생성자로 내부 상태 보장
 - [x] 자동차 목록을 일급 컬렉션으로 관리
+- [x] 불변 리스트로 외부 수정 방지
 
-### 4️⃣ 시도 횟수 검증 (\`AttemptCountValidator\`)
-- [x] 빈 입력 검증 (아무것도 입력하지 않은 경우)
-- [x] 빈 입력 시 \`InvalidAttemptCountException\` 발생
-- [x] 입력값이 숫자인지 검증
-- [x] 숫자가 아니면 \`InvalidAttemptCountException\` 발생
-- [x] 범위 검증 (1 이상 20 이하)
-- [x] 범위를 벗어나면 \`InvalidAttemptCountException\` 발생
-- [x] 커스텀 설정 지원 (최소/최대 범위 설정 가능)
-- [x] 생성자 파라미터 검증 (방어적 프로그래밍)
+### 6️⃣ 이동 로직
+- [x] MovementGenerator 인터페이스 정의
+- [x] RandomMovementGenerator 구현
+- [x] 0~9 사이의 무작위 값 생성
+- [x] 4 이상이면 전진
+- [x] 4 미만이면 정지
+- [x] 테스트 가능한 구조
 
-### 5️⃣ 경주 진행 (\`RacingGame\`, \`MovementGenerator\`)
-- [ ] 주어진 횟수만큼 라운드 반복
-- [x] 각 라운드마다 모든 자동차에 대해:
-  - [x] 0~9 사이의 무작위 값 생성 (\`Randoms.pickNumberInRange(0, 9)\`)
-  - [x] 값이 4 이상이면 전진
-  - [x] 값이 4 미만이면 정지
-- [ ] 각 라운드 결과를 반환
+### 7️⃣ 경주 진행
+- [x] 주어진 횟수만큼 라운드 반복
+- [x] 각 라운드마다 `Cars.moveAll(generator)` 호출
+- [x] moveAll 내부에서:
+  - [x] 각 Car에 대해 `generator.isMovable()` 호출
+  - [x] `car.move(shouldMove)` 호출하여 새 Car 생성/유지
+  - [x] 모든 Car를 모아 새 Cars 객체 생성
+- [x] 최종 Cars 객체를 반환
+- [x] 각 라운드 결과를 OutputView로 출력
 
-### 6️⃣ 우승자 결정 (\`RacingGame\`, \`Cars\`)
-- [ ] 모든 자동차 중 최대 이동 거리 찾기
-- [ ] 최대 이동 거리를 가진 자동차들을 우승자로 결정
-- [ ] 우승자가 여러 명일 경우 리스트로 반환
+### 8️⃣ 우승자 결정
+- [x] 모든 자동차 중 최대 이동 거리 찾기
+- [x] 최대 이동 거리를 가진 자동차들을 필터링
+- [x] Car 목록을 이름 목록으로 변환
+- [x] 우승자가 여러 명일 경우 모두 반환
 
-### 7️⃣ 출력 처리 (\`OutputView\`)
+### 9️⃣ 출력 처리
 - [x] 빈 줄 출력 후 "실행 결과" 출력
 - [x] 각 라운드별 실행 결과 출력
-  - [x] 형식: \`자동차이름 : -\` (이동 거리만큼 \`-\` 출력)
+  - [x] Cars 객체를 받아서 처리
+  - [x] 형식: `자동차이름 : -`
   - [x] 각 자동차마다 한 줄씩 출력
   - [x] 라운드 사이에 빈 줄 추가
 - [x] 최종 우승자 출력
-  - [x] 단독 우승: \`최종 우승자 : pobi\`
-  - [x] 공동 우승: \`최종 우승자 : pobi, jun\` (쉼표와 공백으로 구분)
+  - [x] 이름 목록을 받아서 출력
+  - [x] 단독 우승: `최종 우승자 : pobi`
+  - [x] 공동 우승: `최종 우승자 : pobi, jun`
 
-### 8️⃣ 전체 흐름 (\`RacingGameController\`)
-- [ ] 자동차 이름 입력 받기
-- [ ] 자동차 이름 유효성 검증
-- [ ] 자동차 객체 생성
-- [ ] 시도 횟수 입력 받기
-- [ ] 시도 횟수 유효성 검증
-- [ ] 경주 게임 초기화
-- [ ] 경주 진행 및 각 라운드 결과 출력
-- [ ] 우승자 결정 및 출력
-- [ ] 예외 발생 시 애플리케이션 종료
-
-<br>
-
----
-
-## 🚀 보다 구체화된 구현 목록 (선택)
-
-<details>
-<summary><b>1️⃣ 불변 객체 설계</b></summary>
-
-**Car 불변성**
-- [ ] Car 필드를 \`final\`로 선언
-- [ ] 위치 변경 시 새로운 Car 객체 반환
-- [ ] getter만 제공 (setter 없음)
-
-**Cars 불변성**
-- [ ] 내부 리스트를 불변 리스트로 관리
-- [ ] 방어적 복사 적용
-
-</details>
-
-<details>
-<summary><b>2️⃣ 테스트 코드 작성</b></summary>
-
-**Car 테스트**
-- [ ] 자동차 생성 테스트
-- [ ] 전진 테스트
-- [ ] 위치 조회 테스트
-
-**Cars 테스트**
-- [ ] 자동차 이름 목록으로 생성 테스트
-- [ ] 우승자 필터링 테스트
-- [ ] 빈 이름 예외 테스트
-- [ ] 이름 길이 초과 예외 테스트
-
-**RacingGame 테스트**
-- [ ] 경주 진행 테스트
-- [ ] 우승자 결정 테스트 (단독)
-- [ ] 우승자 결정 테스트 (공동)
-
-**CarNameValidator 테스트**
-- [x] 유효한 이름 검증 테스트 (영문, 한글, 숫자 조합)
-- [x] 5자 초과 예외 테스트 (`ErrorType.INVALID_LENGTH`)
-- [x] 빈 리스트 예외 테스트 (`ErrorType.EMPTY`)
-- [x] null 입력 예외 테스트 (`ErrorType.EMPTY`)
-- [x] 빈 문자열 예외 테스트 (`ErrorType.EMPTY`)
-- [x] 공백 포함 예외 테스트 (`ErrorType.WHITESPACE`) - 파라미터화 테스트
-- [x] 특수문자 포함 예외 테스트 (`ErrorType.SPECIAL_CHAR`) - 파라미터화 테스트
-- [x] 중복 이름 예외 테스트 (`ErrorType.DUPLICATE`)
-- [x] 커스텀 설정 테스트 (최대/최소 길이 설정)
-
-**MovementGenerator 테스트**
-- [ ] 전진 조건 테스트 (4 이상)
-- [ ] 정지 조건 테스트 (4 미만)
-
-</details>
-
-<details>
-<summary><b>3️⃣ 일급 컬렉션 활용</b></summary>
-
-- [ ] Cars 클래스로 자동차 목록 래핑
-- [ ] 컬렉션 관련 비즈니스 로직 집중
-- [ ] 불변성 보장
-- [ ] 의미 있는 메서드 제공 (우승자 필터링 등)
-
-</details>
-
-<details>
-<summary><b>4️⃣ 랜덤 값 테스트 전략</b></summary>
-
-- [ ] \`MovementGenerator\` 인터페이스화
-- [ ] 테스트용 고정값 생성기 구현
-- [ ] 프로덕션용 랜덤 생성기 구현
-- [ ] 의존성 주입을 통한 테스트 용이성 확보
-
-</details>
+### 🔟 전체 흐름
+- [x] InputView에서 자동차 이름 List 받기
+- [x] Cars 객체 생성
+- [x] InputView에서 시도 횟수 String 받기
+- [x] AttemptCount 객체 생성
+- [x] 경주 진행
+  - [x] 결과 헤더 출력
+  - [x] 라운드 반복
+  - [x] 최종 Cars 반환
+- [x] 우승자 결정 및 출력
+  - [x] `finalCars.getWinnerNames()` 호출
+  - [x] `outputView.printWinners()` 호출
+- [x] 예외 발생 시 애플리케이션 종료
 
 <br>
 
@@ -593,38 +612,7 @@ racingcar/
 
 ## 💻 실행 결과 예시
 
-### ✅ 정상 실행 (단독 우승)
-```
-경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
-pobi,woni,jun
-시도할 횟수는 몇 회인가요?
-5
-
-실행 결과
-pobi : -
-woni :
-jun : -
-
-pobi : --
-woni : -
-jun : --
-
-pobi : ---
-woni : --
-jun : ---
-
-pobi : ----
-woni : ---
-jun : ----
-
-pobi : -----
-woni : ----
-jun : -----
-
-최종 우승자 : pobi
-```
-
-### ✅ 정상 실행 (공동 우승)
+### ✅ 정상 실행
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni,jun
@@ -655,43 +643,45 @@ jun : -----
 최종 우승자 : pobi, jun
 ```
 
-### ❌ 예외 발생 (이름 길이 초과)
+### ❌ 예외 발생 - 이름 길이 초과
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
-pobi,javaji,jun
-Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: INVALID_LENGTH
-	at racingcar.domain.CarNameValidator.validateLength(CarNameValidator.java:82)
+pobi,javaji
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [ERROR] 자동차 이름의 길이가 올바르지 않습니다.
+	at racingcar.domain.Car.validateNameLength(Car.java:50)
+	at racingcar.domain.Car.validateName(Car.java:30)
+	at racingcar.domain.Car.<init>(Car.java:16)
 	...
-[ERROR] 자동차 이름은 1자 이상 5자 이하여야 합니다.
 ```
 
-### ❌ 예외 발생 (중복 이름)
+### ❌ 예외 발생 - 중복 이름
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,jun,pobi
-Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: DUPLICATE
-	at racingcar.domain.CarNameValidator.validateNoDuplicateName(CarNameValidator.java:74)
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [ERROR] 중복된 자동차 이름이 있습니다.
+	at racingcar.domain.Cars.validateNoDuplicates(Cars.java:33)
+	at racingcar.domain.Cars.<init>(Cars.java:14)
 	...
-[ERROR] 중복된 자동차 이름이 있습니다.
 ```
 
-### ❌ 예외 발생 (특수문자 포함)
+### ❌ 예외 발생 - 특수문자 포함
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,jun@
-Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: SPECIAL_CHAR
-	at racingcar.domain.CarNameValidator.validateNoSpecialCharacters(CarNameValidator.java:98)
+Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [ERROR] 자동차 이름은 한글, 영문, 숫자만 사용 가능합니다.
+	at racingcar.domain.Car.validateSpecialCharacter(Car.java:63)
 	...
-[ERROR] 자동차 이름은 한글, 영문, 숫자만 사용 가능합니다.
 ```
 
-### ❌ 예외 발생 (잘못된 시도 횟수)
+### ❌ 예외 발생 - 잘못된 시도 횟수
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
-pobi,woni,jun
+pobi,woni
 시도할 횟수는 몇 회인가요?
-0
-Exception in thread "main" java.lang.IllegalArgumentException: 시도 횟수는 1 이상이어야 합니다.
+abc
+Exception in thread "main" racingcar.domain.exception.InvalidAttemptCountException: [ERROR] 시도 횟수는 숫자여야 합니다.
+	at racingcar.domain.AttemptCount.validateNumeric(AttemptCount.java:31)
+	...
 ```
 
 <br>
@@ -703,20 +693,61 @@ Exception in thread "main" java.lang.IllegalArgumentException: 시도 횟수는 
 | 항목 | 요구 사항 |
 |------|-----------|
 | **JDK 버전** | JDK 21 |
-| **시작점** | \`Application\`의 \`main()\` |
-| **빌드 설정** | \`build.gradle\` 변경 금지 |
+| **시작점** | `Application`의 `main()` |
+| **빌드 설정** | `build.gradle` 변경 금지 |
 | **외부 라이브러리** | 제공된 라이브러리 외 사용 금지 |
-| **종료 처리** | \`System.exit()\` 사용 금지 |
+| **종료 처리** | `System.exit()` 사용 금지 |
 | **코드 스타일** | Java Style Guide |
-| **들여쓰기** | depth 3 이하 (2까지만 허용) |
+| **들여쓰기** | depth 3 이하 |
 | **3항 연산자** | 사용 금지 |
 | **함수 길이** | 한 가지 일만 하도록 최대한 작게 |
-| **입력 처리** | \`camp.nextstep.edu.missionutils.Console.readLine()\` 사용 |
-| **랜덤 값** | \`camp.nextstep.edu.missionutils.Randoms.pickNumberInRange(0, 9)\` 사용 |
+| **입력 처리** | `camp.nextstep.edu.missionutils.Console.readLine()` 사용 |
+| **랜덤 값** | `camp.nextstep.edu.missionutils.Randoms.pickNumberInRange(0, 9)` 사용 |
 | **테스트** | JUnit 5와 AssertJ 사용 |
 
 <br>
 
+---
+
+## 🎓 학습 포인트
+
+### 1. 불변 객체
+- final 필드로 상태 변경 방지
+- 변경 시 새 객체 반환
+- 예측 가능하고 안전한 코드
+- GC가 자동으로 미사용 객체 정리
+
+### 2. 단일 책임 원칙
+- 한 클래스는 하나의 책임만
+- 변경 이유가 하나뿐
+- 높은 응집도, 낮은 결합도
+
+### 3. Tell, Don't Ask
+- 객체에게 데이터를 요청하지 말고 작업을 시켜라
+- 캡슐화 강화
+- 객체가 자신의 데이터를 스스로 처리
+
+### 4. 일급 컬렉션
+- 컬렉션을 감싸는 클래스
+- 컬렉션 관련 로직을 한 곳에 모음
+- 비즈니스 로직 캡슐화
+
+### 5. 원시값 포장
+- 원시 타입을 도메인 객체로
+- 타입 안전성 향상
+- 검증 로직 캡슐화
+
+### 6. 의존성 주입
+- 생성자를 통한 의존성 주입
+- 테스트 용이성 확보
+- 유연한 구조
+
+### 7. 전략 패턴
+- MovementGenerator 인터페이스
+- 랜덤 로직을 교체 가능하게
+- 테스트에서 고정값 생성기 사용 가능
+
+<br>
 
 <div align="center">
 
