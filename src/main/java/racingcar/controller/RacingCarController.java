@@ -1,11 +1,8 @@
 package racingcar.controller;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import racingcar.domain.AttemptCount;
-import racingcar.domain.Car;
 import racingcar.domain.Cars;
 import racingcar.domain.MovementGenerator;
 import racingcar.view.InputView;
@@ -26,20 +23,13 @@ public class RacingCarController {
 		Cars cars = createCars();
 		AttemptCount attemptCount = readAttemptCount();
 
-		playRace(cars, attemptCount);
-		announceWinners(cars);
+		Cars finalCars = playRace(cars, attemptCount);
+		announceWinners(finalCars);
 	}
 
 	private Cars createCars() {
-		String input = inputView.readCarNames();
-		List<String> carNames = parseCarNames(input);
+		List<String> carNames = inputView.readCarNames();
 		return new Cars(carNames);
-	}
-
-	private List<String> parseCarNames(String input) {
-		return Arrays.stream(input.split(","))
-				.map(String::trim)
-				.collect(Collectors.toList());
 	}
 
 	private AttemptCount readAttemptCount() {
@@ -47,28 +37,18 @@ public class RacingCarController {
 		return new AttemptCount(input);
 	}
 
-	private void playRace(Cars cars, AttemptCount attemptCount) {
+	private Cars playRace(Cars cars, AttemptCount attemptCount) {
 		outputView.printResultHeader();
 
 		Cars currentCars = cars;
-		for (int i = 0; i < attemptCount.getValue(); i++) {
+		for (int round = 0; round < attemptCount.getValue(); round++) {
 			currentCars = currentCars.moveAll(movementGenerator);
-			printRoundResult(currentCars);
+			outputView.printRoundResult(currentCars);
 		}
-	}
-
-	private void printRoundResult(Cars cars) {
-		List<Car> carList = cars.getCars();
-		for (Car car : carList) {
-			outputView.printCarPosition(car.getName(), car.getPosition());
-		}
-		outputView.printRoundSeparator();
+		return currentCars;
 	}
 
 	private void announceWinners(Cars cars) {
-		List<String> winnerNames = cars.getWinners().stream()
-				.map(Car::getName)
-				.collect(Collectors.toList());
-		outputView.printWinners(winnerNames);
+		outputView.printWinners(cars.getWinnerNames());
 	}
 }
