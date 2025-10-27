@@ -6,6 +6,8 @@ import racingcar.domain.exception.InvalidCarNameException;
 import racingcar.domain.exception.InvalidCarNameException.ErrorType;
 
 public class Car {
+	private static final int MIN_NAME_LENGTH = 1;
+	private static final int MAX_NAME_LENGTH = 5;
 	private static final Pattern VALID_NAME_PATTERN = Pattern.compile("^[a-zA-Z가-힣0-9]+$");
 
 	private final String name;
@@ -46,8 +48,8 @@ public class Car {
 	}
 
 	private void validateNameLength(String name) {
-		if (name.length() < CarNameConstants.MIN_NAME_LENGTH
-				|| name.length() > CarNameConstants.MAX_NAME_LENGTH) {
+		if (name.length() < MIN_NAME_LENGTH
+				|| name.length() > MAX_NAME_LENGTH) {
 			throw new InvalidCarNameException(ErrorType.TOO_LONG);
 		}
 	}
