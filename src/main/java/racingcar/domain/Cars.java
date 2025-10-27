@@ -49,6 +49,12 @@ public class Cars {
 				.toList();
 	}
 
+	public List<String> getWinnerNames() {
+		return getWinners().stream()
+				.map(Car::getName)
+				.toList();
+	}
+
 	private int getMaxPosition() {
 		return cars.stream()
 				.mapToInt(Car::getPosition)
