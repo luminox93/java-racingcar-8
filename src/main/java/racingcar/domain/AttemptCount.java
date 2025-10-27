@@ -3,28 +3,17 @@ package racingcar.domain;
 import racingcar.domain.exception.InvalidAttemptCountException;
 import racingcar.domain.exception.InvalidAttemptCountException.ErrorType;
 
-public class AttemptCountValidator {
-	private final int minAttemptCount;
-	private final int maxAttemptCount;
+public class AttemptCount {
+	private static final int MIN_ATTEMPT_COUNT = 1;
+	private static final int MAX_ATTEMPT_COUNT = 20;
 
-	public AttemptCountValidator() {
-		this(1, 20);
-	}
+	private final int value;
 
-	public AttemptCountValidator(int minAttemptCount, int maxAttemptCount) {
-		assert minAttemptCount > 0 : "minAttemptCount는 0보다 커야 합니다";
-		assert maxAttemptCount > 0 : "maxAttemptCount는 0보다 커야 합니다";
-		assert minAttemptCount <= maxAttemptCount : "minAttemptCount는 maxAttemptCount 이하여야 합니다";
-
-		this.minAttemptCount = minAttemptCount;
-		this.maxAttemptCount = maxAttemptCount;
-	}
-
-	public int validate(String input) {
+	public AttemptCount(String input) {
 		validateNotEmpty(input);
 		int count = validateNumeric(input);
 		validateRange(count);
-		return count;
+		this.value = count;
 	}
 
 	private void validateNotEmpty(String input) {
@@ -44,8 +33,12 @@ public class AttemptCountValidator {
 	}
 
 	private void validateRange(int count) {
-		if (count < minAttemptCount || count > maxAttemptCount) {
+		if (count < MIN_ATTEMPT_COUNT || count > MAX_ATTEMPT_COUNT) {
 			throw new InvalidAttemptCountException(ErrorType.OUT_OF_RANGE);
 		}
+	}
+
+	public int getValue() {
+		return value;
 	}
 }
