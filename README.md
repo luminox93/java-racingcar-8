@@ -6,12 +6,45 @@
 
 <br>
 
+## 📋 목차
+
+<details open>
+<summary>펼쳐서 전체 목차 보기</summary>
+
+- [프로젝트 개요](#프로젝트-개요)
+  - [목표](#목표)
+  - [설계 의도](#설계-의도)
+  - [실행 흐름](#실행-흐름)
+- [기능 요구 사항](#기능-요구-사항)
+- [게임 로직 플로우](#게임-로직-플로우)
+  - [전체 게임 플로우차트](#전체-게임-플로우차트)
+  - [계층별 상호작용](#계층별-상호작용)
+  - [자동차 이동 결정 로직](#자동차-이동-결정-로직)
+  - [불변 객체 패턴 흐름](#불변-객체-패턴-흐름)
+  - [우승자 결정 로직](#우승자-결정-로직)
+- [프로젝트 구조 설계](#프로젝트-구조-설계)
+  - [패키지 구조](#패키지-구조)
+  - [클래스 역할 및 책임](#클래스-역할-및-책임)
+- [구현할 기능 목록](#구현할-기능-목록)
+- [실행 결과 예시](#실행-결과-예시)
+- [프로그래밍 요구 사항](#프로그래밍-요구-사항)
+- [학습 포인트](#학습-포인트)
+
+</details>
+
+<br>
+
+---
+
 ## 📋 프로젝트 개요
 
 ### 🎯 목표
 주어진 횟수 동안 n대의 자동차가 전진 또는 멈추는 경주 게임을 구현하며, **객체지향 설계 원칙**과 **테스트 가능한 코드**를 작성한다.
 
 ### 🏗️ 설계 의도
+
+<details>
+<summary>상세 설계 원칙 보기 (9가지)</summary>
 
 **1. 계층 분리 - MVC 패턴**
 - `View`: 사용자 입출력 및 데이터 파싱
@@ -72,6 +105,8 @@
 - `ErrorType` enum으로 예외 유형을 타입 안전하게 분류
 - 각 ErrorType이 에러 메시지를 직접 관리
 - 도메인 의도를 명확히 표현
+
+</details>
 
 ### ⚙️ 실행 흐름
 ```
@@ -156,6 +191,9 @@
 
 ### 📊 전체 게임 플로우차트
 
+<details>
+<summary>대형 플로우차트 보기</summary>
+
 ```mermaid
 flowchart TD
     Start([게임 시작]) --> Input1[자동차 이름 입력 요청]
@@ -163,12 +201,12 @@ flowchart TD
     GetNames --> Parse[InputView에서 파싱<br/>쉼표 기준 분리]
     Parse --> CreateCars[Cars 객체 생성 시도]
 
-    CreateCars --> ValidateCars{Cars 생성자 검증<br/>Fail-Fast}
+    CreateCars --> ValidateCars{Cars 생성자<br/>검증}
     ValidateCars -->|빈 리스트| Error1[InvalidCarNameException<br/>즉시 발생]
     ValidateCars -->|중복 이름| Error1
     ValidateCars -->|통과| CreateEachCar[각 Car 객체 생성 시도]
 
-    CreateEachCar --> ValidateCar{Car 생성자 검증<br/>Fail-Fast}
+    CreateEachCar --> ValidateCar{Car 생성자<br/>검증}
     ValidateCar -->|null| Error1
     ValidateCar -->|빈 문자열| Error1
     ValidateCar -->|길이 초과/미만| Error1
@@ -180,7 +218,7 @@ flowchart TD
     Input2 --> GetAttempts[사용자 입력 받기]
     GetAttempts --> CreateAttemptCount[AttemptCount 객체 생성 시도]
 
-    CreateAttemptCount --> ValidateAttempts{AttemptCount 생성자 검증<br/>Fail-Fast}
+    CreateAttemptCount --> ValidateAttempts{AttemptCount 생성자<br/>검증}
     ValidateAttempts -->|빈 입력| Error2[InvalidAttemptCountException<br/>즉시 발생]
     ValidateAttempts -->|숫자 아님| Error2
     ValidateAttempts -->|범위 초과 1-20| Error2
@@ -237,7 +275,14 @@ flowchart TD
     style NewCars fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
 ```
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 ### 🔄 계층별 상호작용
+
+<details>
+<summary>시퀀스 다이어그램 보기</summary>
 
 ```mermaid
 sequenceDiagram
@@ -257,33 +302,29 @@ sequenceDiagram
     InputView-->>Controller: List<String> 반환
     deactivate InputView
 
-    Note over Controller,Car: ⚠️ 검증 단계 (Fail-Fast)
+    Note over Controller,Car: ⚠️ 검증 단계
     activate Controller
     Controller->>Cars: new Cars(carNames)
     activate Cars
 
-    rect rgb(255, 235, 205)
-        Note right of Cars: 생성자에서 즉시 검증
-        Cars->>Cars: validateNames(빈 리스트 체크)
-        Cars->>Cars: validateNoDuplicates(중복 체크)
+    Note right of Cars: 생성자에서 즉시 검증
+    Cars->>Cars: validateNames(빈 리스트 체크)
+    Cars->>Cars: validateNoDuplicates(중복 체크)
 
-        loop 각 이름
-            Cars->>Car: new Car(name)
-            activate Car
-            rect rgb(255, 245, 220)
-                Note right of Car: Car 생성자에서 즉시 검증
-                Car->>Car: validateName(null, 빈문자열)
-                Car->>Car: validateLength(1~5자)
-                Car->>Car: validateNoWhiteSpace(공백)
-                Car->>Car: validateNoSpecialChar(특수문자)
-            end
+    loop 각 이름
+        Cars->>Car: new Car(name)
+        activate Car
+        Note right of Car: Car 생성자에서 즉시 검증
+        Car->>Car: validateName(null, 빈문자열)
+        Car->>Car: validateLength(1~5자)
+        Car->>Car: validateNoWhiteSpace(공백)
+        Car->>Car: validateNoSpecialChar(특수문자)
 
-            alt 검증 실패
-                Car--xController: InvalidCarNameException
-                Controller--xUser: ❌ 프로그램 종료
-            end
-            deactivate Car
+        alt 검증 실패
+            Car--xController: InvalidCarNameException
+            Controller--xUser: ❌ 프로그램 종료
         end
+        deactivate Car
     end
     Cars-->>Controller: Cars 객체 생성 성공 ✓
     deactivate Cars
@@ -296,12 +337,10 @@ sequenceDiagram
     Controller->>AttemptCount: new AttemptCount(input)
     activate AttemptCount
 
-    rect rgb(255, 235, 205)
-        Note right of AttemptCount: 생성자에서 즉시 검증
-        AttemptCount->>AttemptCount: validateNotEmpty
-        AttemptCount->>AttemptCount: validateNumeric
-        AttemptCount->>AttemptCount: validateRange(1~20)
-    end
+    Note right of AttemptCount: 생성자에서 즉시 검증
+    AttemptCount->>AttemptCount: validateNotEmpty
+    AttemptCount->>AttemptCount: validateNumeric
+    AttemptCount->>AttemptCount: validateRange(1~20)
 
     alt 검증 실패
         AttemptCount--xController: InvalidAttemptCountException
@@ -373,7 +412,14 @@ sequenceDiagram
     deactivate Controller
 ```
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 ### 🏎️ 자동차 이동 결정 로직
+
+<details>
+<summary>이동 결정 다이어그램 보기</summary>
 
 ```mermaid
 flowchart LR
@@ -396,7 +442,14 @@ flowchart LR
     style Check fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
 ```
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 ### 🔄 불변 객체 패턴 흐름
+
+<details>
+<summary>불변 객체 흐름 다이어그램 보기</summary>
 
 ```mermaid
 flowchart TD
@@ -429,7 +482,14 @@ flowchart TD
     style Winner fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
 ```
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 ### 🏆 우승자 결정 로직
+
+<details>
+<summary>우승자 결정 다이어그램 보기</summary>
 
 ```mermaid
 flowchart TD
@@ -459,6 +519,10 @@ flowchart TD
     style MapNames fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
     style Count fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
 ```
+
+</details>
+
+[🔝 목차로 돌아가기](#목차)
 
 <br>
 
@@ -490,6 +554,9 @@ racingcar/
 ```
 
 ### 🎯 클래스 역할 및 책임
+
+<details>
+<summary>상세 클래스 역할 보기</summary>
 
 **`Application`**
 - 프로그램의 시작점
@@ -585,11 +652,18 @@ racingcar/
 - 출력 관련 메시지 상수 enum
 - RESULT_HEADER, WINNERS_PREFIX
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 <br>
 
 ---
 
 ## 📝 구현할 기능 목록
+
+<details>
+<summary>전체 체크리스트 보기</summary>
 
 ### 1️⃣ 입력 처리
 - [x] "경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)" 출력
@@ -677,6 +751,10 @@ racingcar/
   - [x] `outputView.printWinners()` 호출
 - [x] 예외 발생 시 애플리케이션 종료
 
+</details>
+
+[🔝 목차로 돌아가기](#목차)
+
 <br>
 
 ---
@@ -684,6 +762,10 @@ racingcar/
 ## 💻 실행 결과 예시
 
 ### ✅ 정상 실행
+
+<details>
+<summary>정상 실행 예시 보기</summary>
+
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni,jun
@@ -714,7 +796,14 @@ jun : -----
 최종 우승자 : pobi, jun
 ```
 
-### ❌ 예외 발생 - 이름 길이 초과
+</details>
+
+### ❌ 예외 발생 예시
+
+<details>
+<summary>예외 발생 예시 보기</summary>
+
+**이름 길이 초과**
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,javaji
@@ -725,7 +814,7 @@ Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [
 	...
 ```
 
-### ❌ 예외 발생 - 중복 이름
+**중복 이름**
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,jun,pobi
@@ -735,7 +824,7 @@ Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [
 	...
 ```
 
-### ❌ 예외 발생 - 특수문자 포함
+**특수문자 포함**
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,jun@
@@ -744,7 +833,7 @@ Exception in thread "main" racingcar.domain.exception.InvalidCarNameException: [
 	...
 ```
 
-### ❌ 예외 발생 - 잘못된 시도 횟수
+**잘못된 시도 횟수**
 ```
 경주할 자동차 이름을 입력하세요.(이름은 쉼표(,) 기준으로 구분)
 pobi,woni
@@ -754,6 +843,10 @@ Exception in thread "main" racingcar.domain.exception.InvalidAttemptCountExcepti
 	at racingcar.domain.AttemptCount.validateNumeric(AttemptCount.java:31)
 	...
 ```
+
+</details>
+
+[🔝 목차로 돌아가기](#목차)
 
 <br>
 
@@ -817,6 +910,8 @@ Exception in thread "main" racingcar.domain.exception.InvalidAttemptCountExcepti
 - MovementGenerator 인터페이스
 - 랜덤 로직을 교체 가능하게
 - 테스트에서 고정값 생성기 사용 가능
+
+[🔝 목차로 돌아가기](#목차)
 
 <br>
 
