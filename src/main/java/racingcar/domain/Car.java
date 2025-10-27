@@ -50,7 +50,7 @@ public class Car {
 	private void validateNameLength(String name) {
 		if (name.length() < MIN_NAME_LENGTH
 				|| name.length() > MAX_NAME_LENGTH) {
-			throw new InvalidCarNameException(ErrorType.TOO_LONG);
+			throw new InvalidCarNameException(ErrorType.INVALID_LENGTH);
 		}
 	}
 
