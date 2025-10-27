@@ -1,8 +1,6 @@
 package racingcar.view;
 
 import camp.nextstep.edu.missionutils.Console;
-import racingcar.domain.exception.InvalidCarNameException;
-import racingcar.view.messages.ErrorMessage;
 import racingcar.view.messages.InputMessage;
 
 public class InputView {

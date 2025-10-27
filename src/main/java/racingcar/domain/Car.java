@@ -1,6 +1,13 @@
 package racingcar.domain;
 
+import java.util.regex.Pattern;
+
+import racingcar.domain.exception.InvalidCarNameException;
+import racingcar.domain.exception.InvalidCarNameException.ErrorType;
+
 public class Car {
+	private static final Pattern VALID_NAME_PATTERN = Pattern.compile("^[a-zA-Z가-힣0-9]+$");
+
 	private final String name;
 	private final int position;
 
@@ -19,8 +26,42 @@ public class Car {
 	}
 
 	private void validateName(String name) {
+		validateNameNotNull(name);
 		validateNameNotEmpty(name);
 		validateNameLength(name);
+		validateNoWhiteSpace(name);
+		validateSpecialCharacter(name);
+	}
+
+	private void validateNameNotNull(String name) {
+		if (name == null) {
+			throw new InvalidCarNameException(ErrorType.NULL);
+		}
+	}
+
+	private void validateNameNotEmpty(String name) {
+		if (name.isEmpty()) {
+			throw new InvalidCarNameException(ErrorType.EMPTY);
+		}
+	}
+
+	private void validateNameLength(String name) {
+		if (name.length() < CarNameConstants.MIN_NAME_LENGTH
+				|| name.length() > CarNameConstants.MAX_NAME_LENGTH) {
+			throw new InvalidCarNameException(ErrorType.TOO_LONG);
+		}
+	}
+
+	private void validateNoWhiteSpace(String name) {
+		if (name.contains(" ")) {
+			throw new InvalidCarNameException(ErrorType.WHITE_SPACE);
+		}
+	}
+
+	private void validateSpecialCharacter(String name) {
+		if (!VALID_NAME_PATTERN.matcher(name).matches()) {
+			throw new InvalidCarNameException(ErrorType.SPECIAL_CHARACTER);
+		}
 	}
 
 	public Car move(boolean shouldMove) {
