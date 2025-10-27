@@ -52,8 +52,8 @@ class CarTest {
 		assertThatThrownBy(() -> new Car(null))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.NULL.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.NULL);
 				});
 	}
@@ -64,8 +64,8 @@ class CarTest {
 		assertThatThrownBy(() -> new Car(""))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -76,8 +76,8 @@ class CarTest {
 		assertThatThrownBy(() -> new Car("abcdef"))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.INVALID_LENGTH.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.INVALID_LENGTH);
 				});
 	}
@@ -88,8 +88,8 @@ class CarTest {
 		assertThatThrownBy(() -> new Car("po bi"))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.WHITE_SPACE.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.WHITE_SPACE);
 				});
 	}
@@ -100,8 +100,8 @@ class CarTest {
 		assertThatThrownBy(() -> new Car("car!"))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.SPECIAL_CHARACTER.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.SPECIAL_CHARACTER);
 				});
 	}

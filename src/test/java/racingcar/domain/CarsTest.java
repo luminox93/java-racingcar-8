@@ -30,8 +30,8 @@ class CarsTest {
 		assertThatThrownBy(() -> new Cars(null))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -45,8 +45,8 @@ class CarsTest {
 		assertThatThrownBy(() -> new Cars(names))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -60,8 +60,8 @@ class CarsTest {
 		assertThatThrownBy(() -> new Cars(names))
 				.isInstanceOf(InvalidCarNameException.class)
 				.hasMessage(ErrorType.DUPLICATE.getMessage())
-				.satisfies(e -> {
-					InvalidCarNameException exception = (InvalidCarNameException) e;
+				.satisfies(throwable -> {
+					InvalidCarNameException exception = (InvalidCarNameException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.DUPLICATE);
 				});
 	}

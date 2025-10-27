@@ -63,8 +63,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount(null))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -75,8 +75,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount(""))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -87,8 +87,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("   "))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.EMPTY.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.EMPTY);
 				});
 	}
@@ -99,8 +99,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("abc"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.NOT_NUMBER.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_NUMBER);
 				});
 	}
@@ -111,8 +111,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("5!"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.NOT_NUMBER.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_NUMBER);
 				});
 	}
@@ -123,8 +123,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("5.5"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.NOT_NUMBER.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.NOT_NUMBER);
 				});
 	}
@@ -135,8 +135,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("0"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.OUT_OF_RANGE.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.OUT_OF_RANGE);
 				});
 	}
@@ -147,8 +147,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("-1"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.OUT_OF_RANGE.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.OUT_OF_RANGE);
 				});
 	}
@@ -159,8 +159,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("21"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.OUT_OF_RANGE.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.OUT_OF_RANGE);
 				});
 	}
@@ -171,8 +171,8 @@ class AttemptCountTest {
 		assertThatThrownBy(() -> new AttemptCount("100"))
 				.isInstanceOf(InvalidAttemptCountException.class)
 				.hasMessage(ErrorType.OUT_OF_RANGE.getMessage())
-				.satisfies(e -> {
-					InvalidAttemptCountException exception = (InvalidAttemptCountException) e;
+				.satisfies(throwable -> {
+					InvalidAttemptCountException exception = (InvalidAttemptCountException) throwable;
 					assertThat(exception.getErrorType()).isEqualTo(ErrorType.OUT_OF_RANGE);
 				});
 	}
