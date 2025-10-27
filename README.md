@@ -161,29 +161,32 @@ flowchart TD
     Start([게임 시작]) --> Input1[자동차 이름 입력 요청]
     Input1 --> GetNames[사용자 입력 받기]
     GetNames --> Parse[InputView에서 파싱<br/>쉼표 기준 분리]
-    Parse --> CreateCars[Cars 객체 생성]
+    Parse --> CreateCars[Cars 객체 생성 시도]
 
-    CreateCars --> ValidateCars{Cars 검증}
-    ValidateCars -->|빈 리스트| Error1[InvalidCarNameException]
+    CreateCars --> ValidateCars{Cars 생성자 검증<br/>Fail-Fast}
+    ValidateCars -->|빈 리스트| Error1[InvalidCarNameException<br/>즉시 발생]
     ValidateCars -->|중복 이름| Error1
-    ValidateCars -->|통과| CreateEachCar[각 Car 객체 생성]
+    ValidateCars -->|통과| CreateEachCar[각 Car 객체 생성 시도]
 
-    CreateEachCar --> ValidateCar{Car 이름 검증}
+    CreateEachCar --> ValidateCar{Car 생성자 검증<br/>Fail-Fast}
     ValidateCar -->|null| Error1
     ValidateCar -->|빈 문자열| Error1
-    ValidateCar -->|길이 초과| Error1
+    ValidateCar -->|길이 초과/미만| Error1
     ValidateCar -->|공백 포함| Error1
     ValidateCar -->|특수문자 포함| Error1
-    ValidateCar -->|통과| Input2[시도 횟수 입력 요청]
+    ValidateCar -->|모두 통과| CarsCreated[Cars 객체 생성 완료]
 
+    CarsCreated --> Input2[시도 횟수 입력 요청]
     Input2 --> GetAttempts[사용자 입력 받기]
-    GetAttempts --> CreateAttemptCount[AttemptCount 객체 생성]
+    GetAttempts --> CreateAttemptCount[AttemptCount 객체 생성 시도]
 
-    CreateAttemptCount --> ValidateAttempts{횟수 검증}
-    ValidateAttempts -->|빈 입력| Error2[InvalidAttemptCountException]
+    CreateAttemptCount --> ValidateAttempts{AttemptCount 생성자 검증<br/>Fail-Fast}
+    ValidateAttempts -->|빈 입력| Error2[InvalidAttemptCountException<br/>즉시 발생]
     ValidateAttempts -->|숫자 아님| Error2
-    ValidateAttempts -->|범위 초과| Error2
-    ValidateAttempts -->|통과| RaceStart[경주 시작<br/>실행 결과 헤더 출력]
+    ValidateAttempts -->|범위 초과 1-20| Error2
+    ValidateAttempts -->|통과| AttemptCreated[AttemptCount 객체 생성 완료]
+
+    AttemptCreated --> RaceStart[경주 시작<br/>실행 결과 헤더 출력]
 
     RaceStart --> RoundCheck{모든 라운드<br/>완료?}
     RoundCheck -->|아니오| MoveAll[Cars.moveAll 호출]
@@ -219,15 +222,19 @@ flowchart TD
     Error1 --> Terminate([프로그램 종료])
     Error2 --> Terminate
 
-    style Start fill:#e1f5e1
-    style End fill:#e1f5e1
-    style Terminate fill:#ffe1e1
-    style Error1 fill:#ffcccc
-    style Error2 fill:#ffcccc
-    style MoveForward fill:#cce5ff
-    style Stay fill:#f0f0f0
-    style NewCars fill:#ffffcc
-    style ReturnFinal fill:#ffdddd
+    style Start fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#000
+    style End fill:#4ade80,stroke:#22c55e,stroke-width:3px,color:#000
+    style Terminate fill:#f87171,stroke:#ef4444,stroke-width:3px,color:#000
+    style Error1 fill:#fca5a5,stroke:#ef4444,stroke-width:2px,color:#000
+    style Error2 fill:#fca5a5,stroke:#ef4444,stroke-width:2px,color:#000
+    style ValidateCars fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style ValidateCar fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style ValidateAttempts fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style CarsCreated fill:#86efac,stroke:#22c55e,stroke-width:2px,color:#000
+    style AttemptCreated fill:#86efac,stroke:#22c55e,stroke-width:2px,color:#000
+    style MoveForward fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
+    style Stay fill:#d1d5db,stroke:#9ca3af,stroke-width:2px,color:#000
+    style NewCars fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
 ```
 
 ### 🔄 계층별 상호작용
@@ -243,150 +250,214 @@ sequenceDiagram
     participant Generator as MovementGenerator
     participant OutputView as OutputView
 
+    Note over User,Controller: 📝 입력 단계
     User->>InputView: 자동차 이름 입력
+    activate InputView
     InputView->>InputView: 쉼표 기준 파싱
-    InputView->>Controller: List<String> 반환
+    InputView-->>Controller: List<String> 반환
+    deactivate InputView
 
+    Note over Controller,Car: ⚠️ 검증 단계 (Fail-Fast)
+    activate Controller
     Controller->>Cars: new Cars(carNames)
-    Cars->>Cars: validateNames
-    Cars->>Cars: validateNoDuplicates
+    activate Cars
 
-    loop 각 이름
-        Cars->>Car: new Car(name)
-        Car->>Car: validateName
-        alt 검증 실패
-            Car-->>Controller: InvalidCarNameException
-            Controller-->>User: 프로그램 종료
+    rect rgb(255, 235, 205)
+        Note right of Cars: 생성자에서 즉시 검증
+        Cars->>Cars: validateNames(빈 리스트 체크)
+        Cars->>Cars: validateNoDuplicates(중복 체크)
+
+        loop 각 이름
+            Cars->>Car: new Car(name)
+            activate Car
+            rect rgb(255, 245, 220)
+                Note right of Car: Car 생성자에서 즉시 검증
+                Car->>Car: validateName(null, 빈문자열)
+                Car->>Car: validateLength(1~5자)
+                Car->>Car: validateNoWhiteSpace(공백)
+                Car->>Car: validateNoSpecialChar(특수문자)
+            end
+
+            alt 검증 실패
+                Car--xController: InvalidCarNameException
+                Controller--xUser: ❌ 프로그램 종료
+            end
+            deactivate Car
         end
     end
+    Cars-->>Controller: Cars 객체 생성 성공 ✓
+    deactivate Cars
 
     User->>InputView: 시도 횟수 입력
-    InputView->>Controller: String 반환
+    activate InputView
+    InputView-->>Controller: String 반환
+    deactivate InputView
 
     Controller->>AttemptCount: new AttemptCount(input)
-    AttemptCount->>AttemptCount: validateNotEmpty
-    AttemptCount->>AttemptCount: validateNumeric
-    AttemptCount->>AttemptCount: validateRange
+    activate AttemptCount
 
-    alt 검증 실패
-        AttemptCount-->>Controller: InvalidAttemptCountException
-        Controller-->>User: 프로그램 종료
+    rect rgb(255, 235, 205)
+        Note right of AttemptCount: 생성자에서 즉시 검증
+        AttemptCount->>AttemptCount: validateNotEmpty
+        AttemptCount->>AttemptCount: validateNumeric
+        AttemptCount->>AttemptCount: validateRange(1~20)
     end
 
+    alt 검증 실패
+        AttemptCount--xController: InvalidAttemptCountException
+        Controller--xUser: ❌ 프로그램 종료
+    end
+    AttemptCount-->>Controller: AttemptCount 객체 생성 성공 ✓
+    deactivate AttemptCount
+
+    Note over Controller,OutputView: 🏁 경주 실행 단계
     Controller->>OutputView: printResultHeader()
+    activate OutputView
     OutputView->>User: "실행 결과" 출력
+    deactivate OutputView
 
     loop 각 라운드
         Controller->>Cars: moveAll(generator)
+        activate Cars
 
         loop 각 자동차
             Cars->>Generator: isMovable()
+            activate Generator
             Generator->>Generator: Randoms.pickNumberInRange(0, 9)
-            Generator-->>Cars: true/false
-            Cars->>Car: move(shouldMove)
+            Generator-->>Cars: true/false (4 이상이면 true)
+            deactivate Generator
 
+            Cars->>Car: move(shouldMove)
+            activate Car
             alt 전진
                 Car-->>Cars: new Car(name, position+1)
             else 정지
                 Car-->>Cars: this
             end
+            deactivate Car
         end
 
-        Cars-->>Controller: new Cars
+        Cars-->>Controller: new Cars (불변 객체)
+        deactivate Cars
+
         Controller->>OutputView: printRoundResult(cars)
+        activate OutputView
         OutputView->>Cars: getCars()
+        activate Cars
+        Cars-->>OutputView: List<Car>
+        deactivate Cars
 
         loop 각 자동차
             OutputView->>Car: getName(), getPosition()
+            activate Car
+            Car-->>OutputView: name, position
+            deactivate Car
             OutputView->>User: 이름 : ---
         end
         OutputView->>User: 빈 줄 출력
+        deactivate OutputView
     end
 
+    Note over Controller,OutputView: 🏆 우승자 결정 단계
     Controller->>Cars: getWinnerNames()
+    activate Cars
     Cars->>Cars: getWinners()
     Cars->>Cars: map(Car::getName)
     Cars-->>Controller: List<String> winnerNames
+    deactivate Cars
 
     Controller->>OutputView: printWinners(winnerNames)
+    activate OutputView
     OutputView->>User: 최종 우승자 : pobi, jun
+    deactivate OutputView
+    deactivate Controller
 ```
 
 ### 🏎️ 자동차 이동 결정 로직
 
 ```mermaid
 flowchart LR
-    Start([Car 객체]) --> Generate[MovementGenerator<br/>isMovable 호출]
-    Generate --> Random[Randoms.pickNumberInRange<br/>0, 9]
+    Start([Car 객체]) --> Generate["MovementGenerator<br/>isMovable 호출"]
+    Generate --> Random["Randoms.pickNumberInRange<br/>0~9 랜덤값"]
     Random --> Check{값 >= 4?}
-    Check -->|예<br/>4,5,6,7,8,9| Forward[전진 결정]
-    Check -->|아니오<br/>0,1,2,3| Stay[정지 결정]
-    Forward --> NewCar[새 Car 객체 생성<br/>new Car(name, position+1)]
-    Stay --> ReturnThis[기존 Car 객체 반환<br/>this]
+    Check -->|"예<br/>4,5,6,7,8,9"| Forward["전진 결정<br/>shouldMove = true"]
+    Check -->|"아니오<br/>0,1,2,3"| Stay["정지 결정<br/>shouldMove = false"]
+    Forward --> NewCar["새 Car 객체 생성<br/>position + 1"]
+    Stay --> ReturnThis["기존 Car 반환<br/>position 유지"]
     NewCar --> End([반환])
     ReturnThis --> End
 
-    style Forward fill:#cce5ff
-    style Stay fill:#f0f0f0
-    style NewCar fill:#ffffcc
-    style ReturnThis fill:#f0f0f0
+    style Start fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
+    style End fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
+    style Forward fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
+    style Stay fill:#d1d5db,stroke:#9ca3af,stroke-width:2px,color:#000
+    style NewCar fill:#34d399,stroke:#10b981,stroke-width:2px,color:#000
+    style ReturnThis fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style Check fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
 ```
 
 ### 🔄 불변 객체 패턴 흐름
 
 ```mermaid
 flowchart TD
-    Start([Cars 객체 #1<br/>pobi:0, woni:0]) --> MoveAll1[moveAll 호출]
-    MoveAll1 --> Stream1[각 Car.move 호출]
-    Stream1 --> NewCars1[새 Cars 객체 #2<br/>pobi:1, woni:0]
-    NewCars1 --> GC1[#1은 참조 해제<br/>GC 대상]
+    Start(["Cars 객체 #1<br/>pobi:0, woni:0"]) --> MoveAll1["라운드 1<br/>moveAll 호출"]
+    MoveAll1 --> Stream1["각 Car.move 호출<br/>새 Car 생성"]
+    Stream1 --> NewCars1["새 Cars 객체 #2<br/>pobi:1, woni:0"]
+    NewCars1 --> GC1["#1은 참조 해제<br/>GC 대상"]
 
-    NewCars1 --> MoveAll2[moveAll 호출]
-    MoveAll2 --> Stream2[각 Car.move 호출]
-    Stream2 --> NewCars2[새 Cars 객체 #3<br/>pobi:1, woni:1]
-    NewCars2 --> GC2[#2는 참조 해제<br/>GC 대상]
+    NewCars1 --> MoveAll2["라운드 2<br/>moveAll 호출"]
+    MoveAll2 --> Stream2["각 Car.move 호출<br/>새 Car 생성"]
+    Stream2 --> NewCars2["새 Cars 객체 #3<br/>pobi:1, woni:1"]
+    NewCars2 --> GC2["#2는 참조 해제<br/>GC 대상"]
 
-    NewCars2 --> MoveAll3[moveAll 호출]
-    MoveAll3 --> Stream3[각 Car.move 호출]
-    Stream3 --> NewCars3[새 Cars 객체 #4<br/>pobi:2, woni:1]
-    NewCars3 --> GC3[#3은 참조 해제<br/>GC 대상]
+    NewCars2 --> MoveAll3["라운드 3<br/>moveAll 호출"]
+    MoveAll3 --> Stream3["각 Car.move 호출<br/>새 Car 생성"]
+    Stream3 --> NewCars3["새 Cars 객체 #4<br/>pobi:2, woni:1"]
+    NewCars3 --> GC3["#3은 참조 해제<br/>GC 대상"]
 
-    NewCars3 --> Return[최종 Cars #4 반환]
-    Return --> Winner[우승자 판별에 사용]
+    NewCars3 --> Return["최종 Cars 반환"]
+    Return --> Winner["우승자 판별에 사용"]
 
-    style NewCars1 fill:#ffffcc
-    style NewCars2 fill:#ffffcc
-    style NewCars3 fill:#ffffcc
-    style GC1 fill:#ffcccc
-    style GC2 fill:#ffcccc
-    style GC3 fill:#ffcccc
-    style Return fill:#ccffcc
+    style Start fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
+    style NewCars1 fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style NewCars2 fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style NewCars3 fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
+    style GC1 fill:#f87171,stroke:#ef4444,stroke-width:2px,color:#000
+    style GC2 fill:#f87171,stroke:#ef4444,stroke-width:2px,color:#000
+    style GC3 fill:#f87171,stroke:#ef4444,stroke-width:2px,color:#000
+    style Return fill:#34d399,stroke:#10b981,stroke-width:2px,color:#000
+    style Winner fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
 ```
 
 ### 🏆 우승자 결정 로직
 
 ```mermaid
 flowchart TD
-    Start([최종 Cars 객체]) --> GetWinnerNames[getWinnerNames 호출]
-    GetWinnerNames --> GetWinners[getWinners 호출]
-    GetWinners --> FindMax[getMaxPosition<br/>최대 위치값 찾기]
-    FindMax --> Filter[최대 위치와 같은<br/>Car들 필터링]
-    Filter --> MapNames[map(Car::getName)<br/>이름 목록으로 변환]
-    MapNames --> Return[List<String> 반환]
+    Start([최종 Cars 객체]) --> GetWinnerNames["getWinnerNames 호출"]
+    GetWinnerNames --> GetWinners["getWinners 호출"]
+    GetWinners --> FindMax["getMaxPosition<br/>최대 위치값 찾기"]
+    FindMax --> Filter["최대 위치와 같은<br/>Car들 필터링"]
+    Filter --> MapNames["map Car::getName<br/>이름 목록으로 변환"]
+    MapNames --> Return["List String 반환"]
     Return --> Count{우승자 수}
 
-    Count -->|1명| Single[단독 우승자]
-    Count -->|2명 이상| Multiple[공동 우승자]
+    Count -->|1명| Single["단독 우승자"]
+    Count -->|2명 이상| Multiple["공동 우승자"]
 
-    Single --> FormatSingle[최종 우승자 : pobi]
-    Multiple --> FormatMultiple[최종 우승자 : pobi, jun<br/>쉼표 + 공백으로 구분]
+    Single --> FormatSingle["최종 우승자 : pobi"]
+    Multiple --> FormatMultiple["최종 우승자 : pobi, jun<br/>쉼표 + 공백으로 구분"]
 
     FormatSingle --> End([출력])
     FormatMultiple --> End
 
-    style Single fill:#ffd700
-    style Multiple fill:#ffd700
-    style MapNames fill:#cce5ff
+    style Start fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
+    style End fill:#a78bfa,stroke:#8b5cf6,stroke-width:2px,color:#000
+    style Single fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#000
+    style Multiple fill:#fbbf24,stroke:#f59e0b,stroke-width:3px,color:#000
+    style FormatSingle fill:#34d399,stroke:#10b981,stroke-width:2px,color:#000
+    style FormatMultiple fill:#34d399,stroke:#10b981,stroke-width:2px,color:#000
+    style MapNames fill:#60a5fa,stroke:#3b82f6,stroke-width:2px,color:#000
+    style Count fill:#fbbf24,stroke:#f59e0b,stroke-width:2px,color:#000
 ```
 
 <br>
